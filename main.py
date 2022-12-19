@@ -150,6 +150,7 @@ class MainFrame(ctk.CTkFrame):
                         placeholder_text="Employee ID", 
                         font=("Roboto", 14))
         self.idEntry.pack(pady=20)
+        self.idEntry.bind('<Return>', self.login)
 
         self.pwdEntry = ctk.CTkEntry(master=self.loginFrame, 
                         width=500, 
@@ -158,6 +159,7 @@ class MainFrame(ctk.CTkFrame):
                         show="*", 
                         font=("Roboto", 14))
         self.pwdEntry.pack(pady=20)
+        self.pwdEntry.bind('<Return>', self.login)
 
         self.loginButton = ctk.CTkButton(master=self.loginFrame, 
                         text="Login", 
@@ -167,7 +169,7 @@ class MainFrame(ctk.CTkFrame):
                         command=self.login)
         self.loginButton.pack(pady=20)
 
-    def login(self):
+    def login(self, event):
         employeeID = self.idEntry.get()
         password = self.pwdEntry.get()
         try:
