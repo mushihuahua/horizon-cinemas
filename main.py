@@ -72,8 +72,8 @@ print(test)
 
 class App(ctk.CTk):
 
-    width = 1024
-    height = 768
+    width = 1920
+    height = 1080
     x_pos = 0
     y_pos = 0
 
@@ -87,17 +87,15 @@ class App(ctk.CTk):
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
 
-class MainFrame(ctk.CTkFrame):
+class LoginFrame():
     def __init__(self, container):
-        super().__init__(container)
-
+        
         self.error = None
 
         self.loginFrame = ctk.CTkFrame(master=container, corner_radius=20)
-        self.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
 
         self.loginLabel = ctk.CTkLabel(master=self.loginFrame, text="Employee Login", font=("Roboto", 48))
-        self.loginLabel.pack(pady=container.width/12, padx=60)
+        self.loginLabel.pack(pady=85, padx=60)
 
         logo = ctk.CTkImage(Image.open('icon.png'), size=(250,200))
         self.logo = ctk.CTkLabel(master=self.loginFrame, text="", image=logo)
@@ -154,6 +152,11 @@ class MainFrame(ctk.CTkFrame):
                 hash = result.get("password_hash")
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
+                    # If login is successful show the view menu and the main page
+                    menu.pack()
+                    loginView.loginFrame.pack_forget()
+                    mainView.mainFrame.pack(pady=20, padx=60, fill="both", expand=True)
+
                 else:
                     # Clear the password entry field
                     self.pwdEntry.delete(0, "end")
@@ -171,14 +174,34 @@ class MainFrame(ctk.CTkFrame):
                 self.error.pack()
                 return
 
-        except:
+        except TypeError:
             if(self.error != None):
                 self.error.pack_forget()
             self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red", font=("Roboto", 18))
             self.error.pack()
 
+class MainFrame():
+    def __init__(self, container):
+
+        self.mainFrame = ctk.CTkFrame(master=container, corner_radius=20)
+
+        self.test = ctk.CTkLabel(master=self.mainFrame, text="testing")
+        self.test.pack()
+
+
+
 if(__name__ == "__main__"):
+    frames = []
     # print(client.list_database_names())
     app = App()
-    frame = MainFrame(app)
+
+    menu = ctk.CTkFrame(master=app, width=app.width, height=75)
+
+    loginView = LoginFrame(app)
+    mainView = MainFrame(app)
+    
+    frames.append(loginView)
+    frames.append(mainView)
+
+    loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
     app.mainloop()
