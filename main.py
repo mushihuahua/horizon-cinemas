@@ -3,6 +3,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
 from PIL import Image, ImageTk
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -10,31 +12,22 @@ ctk.set_default_color_theme("green")
 cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mongodb.net/?retryWrites=true&w=majority"
 client = MongoClient(cluster)
 
-
-
-
-
-
+db = client.horizonCinemasDB
 
 class Staff:
-    def __init__(self, employeeID, passwordHash, fullName, cinema, firstName, lastName):
-        def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
-            self.ID = employeeID
-            self.passwordHash = passwordHash
-            self.cinema = cinema
-            self.firstName = firstName
-            self.lastName = lastName
-            fullName = self.firstName +' '+ self.lastName
-            self.fullName = fullName
-            self.fullName = self.firstName +' '+ self.lastName
+    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
+        self.ID = employeeID
+        self.passwordHash = passwordHash
+        self.cinema = cinema
+        self.firstName = firstName
+        self.lastName = lastName
+        self.fullName = self.firstName +' '+ self.lastName
         
-    def get_passwordHash(self):
-        def getPasswordHash(self):
-            return self.passwordHash
+    def getPasswordHash(self):
+        return self.passwordHash
 
-    def set_passwordHash(self, passwordHash):
-        def setPasswordHash(self, passwordHash):
-            self.passwordHash = passwordHash
+    def setPasswordHash(self, passwordHash):
+        self.passwordHash = passwordHash
     
     def changePassword(self, newPass):
         self.passwordHash = newPass
@@ -42,52 +35,21 @@ class Staff:
     def __str__(self):
         return f"{self.fullName} {self.passwordHash}"
 
-class BookingStaff: 
-    def __init__(self, employeeID, passwordHash, fullName, cinema, firstName, lastName):
-        super().__init__(employeeID, passwordHash, fullName, cinema, firstName, lastName)
-        self.ID = employeeID
-        self.passwordHash = passwordHash
-        self.cinema = cinema
-        self.firstName = firstName
-        self.lastName = lastName
-        fullName = self.firstName +' '+ self.lastName
-        self.fullName = fullName
 class BookingStaff(Staff): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-class Manager: 
-    def __init__(self, employeeID, passwordHash, fullName, cinema, firstName, lastName):
-        super().__init__(employeeID, passwordHash, fullName, cinema, firstName, lastName)
-        self.ID = employeeID
-        self.passwordHash = passwordHash
-        self.cinema = cinema
-        self.firstName = firstName
-        self.lastName = lastName
-        fullName = self.firstName +' '+ self.lastName
-        self.fullName = fullName
 class Manager(BookingStaff): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
     
-class Admin: 
-    def __init__(self, employeeID, passwordHash, fullName, cinema, firstName, lastName, report):
-        super().__init__(employeeID, passwordHash, fullName, cinema, firstName, lastName)
-        self.ID = employeeID
-        self.passwordHash = passwordHash
-        self.cinema = cinema
-        self.firstName = firstName
-        self.lastName = lastName
-        fullName = self.firstName + ' ' + self.lastName
-        self.fullName = fullName
 class Admin(Manager): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName, report):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
         self.__report = report 
     
-    def generateReport():
-        def generateReport(self):
-            pass
+    def generateReport(self):
+        pass
 
 class Report:
     def __init__(self, numberOfListingBookings, totalMonthlyRevenue, topFilm, staffBookings):
@@ -108,12 +70,6 @@ test.changePassword("hello")
 print(test)
 '''
 
-
-
-
-
-
-
 class App(ctk.CTk):
 
     width = 1024
@@ -124,7 +80,10 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Horizon Cinemas")
-        self.iconbitmap('icon.ico')
+        if "nt" == os.name:
+            self.wm_iconbitmap(bitmap = "icon.ico")
+        else:
+            pass
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
 
@@ -169,25 +128,57 @@ class MainFrame(ctk.CTkFrame):
                         command=self.login)
         self.loginButton.pack(pady=20)
 
-    def login(self, event):
+    def login(self, event=None):
+
+        # Get input from the entry widgets
         employeeID = self.idEntry.get()
         password = self.pwdEntry.get()
+
+        # Make sure the employee id inputted is a number
         try:
             employeeID = int(employeeID)
             if(self.error != None):
                 self.error.pack_forget()
+
+            # Make sure that employee id is 6 digits
+            if(len(str(employeeID)) != 6):
+                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a 6 digit number", text_color="red", font=("Roboto", 18))
+                self.error.pack()
+                return
+
+            # Try to find an entry in db with employeeID and check if it exists
+            result = db.staff.find_one({"_id": employeeID})
+            if(result != None):
+
+                # Get the password hash related to that employee ID if it exists and check if the password entered is correct
+                hash = result.get("password_hash")
+                if(check_password_hash(hash, password)):
+                    print(f"Login Successful")
+                else:
+                    # Clear the password entry field
+                    self.pwdEntry.delete(0, "end")
+
+                    # More error checking
+                    if(len(str(password)) < 8 or len(str(password)) > 16):
+                        self.error = ctk.CTkLabel(master=self.loginFrame, text="The password should be 8 to 16 characters long", text_color="red", font=("Roboto", 18))
+                        self.error.pack()
+                        return
+                    self.error = ctk.CTkLabel(master=self.loginFrame, text="The password you entered is incorrect, try again", text_color="red", font=("Roboto", 18))
+                    self.error.pack()
+                    return
+            else:
+                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID does not exist", text_color="red", font=("Roboto", 18))
+                self.error.pack()
+                return
+
         except:
             if(self.error != None):
                 self.error.pack_forget()
-            self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red")
+            self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red", font=("Roboto", 18))
             self.error.pack()
-        print(f"ID:{employeeID}\nPWD:{password}")
-
-        
-
 
 if(__name__ == "__main__"):
-    #print(client.list_database_names())
+    # print(client.list_database_names())
     app = App()
     frame = MainFrame(app)
     app.mainloop()
