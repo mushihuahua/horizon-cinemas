@@ -79,6 +79,10 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
+
+        self.frames = []
+        self.buttons = []
+
         self.title("Horizon Cinemas")
         if "nt" == os.name:
             self.wm_iconbitmap(bitmap = "icon.ico")
@@ -86,6 +90,21 @@ class App(ctk.CTk):
             pass
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
+    def switchFrame(self, frame, button):
+
+        # Unpack all the view frames
+        for i in self.frames:
+            i.frame.pack_forget()
+        
+        # Pack the view frame switched to
+        frame.pack(pady=20, padx=60, fill="both", expand=True)
+
+        # Return all buttons to normal
+        for i in self.buttons:
+            i.configure(border_width=0, fg_color="#fc3d39")
+
+        # Change the button pressed to be highlighted
+        button.configure(border_color="#f8f8f8", border_width=4, fg_color="#e33437")
 
 class LoginFrame():
     def __init__(self, container):
@@ -153,9 +172,10 @@ class LoginFrame():
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
                     # If login is successful show the view menu and the main page
-                    menu.pack()
+                    menu.menuFrame.pack(fill="both")
+                    menu.bookingStaffButton.configure(border_color="#f8f8f8", border_width=4, fg_color="#e33437")
                     loginView.loginFrame.pack_forget()
-                    mainView.mainFrame.pack(pady=20, padx=60, fill="both", expand=True)
+                    mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
 
                 else:
                     # Clear the password entry field
@@ -174,7 +194,7 @@ class LoginFrame():
                 self.error.pack()
                 return
 
-        except TypeError:
+        except ValueError:
             if(self.error != None):
                 self.error.pack_forget()
             self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red", font=("Roboto", 18))
@@ -183,25 +203,115 @@ class LoginFrame():
 class MainFrame():
     def __init__(self, container):
 
-        self.mainFrame = ctk.CTkFrame(master=container, corner_radius=20)
+        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
 
-        self.test = ctk.CTkLabel(master=self.mainFrame, text="testing")
+        self.test = ctk.CTkLabel(master=self.frame, text="Main")
+        self.test.pack()
+
+class AdminFrame():
+    def __init__(self, container):
+
+        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
+
+        self.test = ctk.CTkLabel(master=self.frame, text="Admin")
+        self.test.pack()
+
+class ManagerFrame():
+    def __init__(self, container):
+
+        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
+
+        self.test = ctk.CTkLabel(master=self.frame, text="Manager")
+        self.test.pack()
+
+class AccountFrame():
+    def __init__(self, container):
+
+        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
+
+        self.test = ctk.CTkLabel(master=self.frame, text="Account")
         self.test.pack()
 
 
+class MenuFrame():
+    def __init__(self, container):
+
+        self.menuFrame = ctk.CTkFrame(master=container, 
+                                width=app.width, 
+                                border_width=1, 
+                                border_color="black")
+
+        buttonPaddingX = 25
+
+        # Create the buttons to allow for view switching
+        self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
+                                    text="Booking Staff View", 
+                                    width=250,
+                                    height=75,
+                                    font=("", 16, "bold"), 
+                                    corner_radius=7,
+                                    fg_color="#fc3d39",
+                                    hover_color="#e33437",
+                                    command=lambda: container.switchFrame(mainView.frame, self.bookingStaffButton))
+
+        self.adminButton = ctk.CTkButton(master=self.menuFrame, 
+                                    text="Admin View",
+                                    width=250,
+                                    height=75,
+                                    font=("", 16, "bold"),
+                                    corner_radius=7,
+                                    fg_color="#fc3d39",
+                                    hover_color="#e33437",
+                                    command=lambda: container.switchFrame(adminView.frame, self.adminButton))
+
+        self.managerButton = ctk.CTkButton(master=self.menuFrame, 
+                                    text="Manager View",
+                                    width=250,
+                                    height=75,
+                                    font=("", 16, "bold"),
+                                    corner_radius=7,
+                                    fg_color="#fc3d39",
+                                    hover_color="#e33437",
+                                    command=lambda: container.switchFrame(managerView.frame, self.managerButton))
+
+        self.accountButton = ctk.CTkButton(master=self.menuFrame, 
+                                    text="Account",
+                                    width=250,
+                                    height=75,
+                                    font=("", 16, "bold"),
+                                    corner_radius=7,
+                                    fg_color="#fc3d39",
+                                    hover_color="#e33437",
+                                    command=lambda: container.switchFrame(accountView.frame, self.accountButton))
+
+        # Put them on the GUI Grid inline and append them to a buttons array
+        self.bookingStaffButton.grid(row=0, column=0, padx=((app.width/5.5), buttonPaddingX), pady=(37, 37))
+        self.adminButton.grid(row=0, column=1, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
+        self.managerButton.grid(row=0, column=2, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
+        self.accountButton.grid(row=0, column=3, padx=(buttonPaddingX, 0), pady=(37, 37))
+        container.buttons.append(self.bookingStaffButton)
+        container.buttons.append(self.adminButton)
+        container.buttons.append(self.managerButton)
+        container.buttons.append(self.accountButton)
 
 if(__name__ == "__main__"):
-    frames = []
     # print(client.list_database_names())
     app = App()
 
-    menu = ctk.CTkFrame(master=app, width=app.width, height=75)
-
+    menu = MenuFrame(app)
     loginView = LoginFrame(app)
     mainView = MainFrame(app)
-    
-    frames.append(loginView)
-    frames.append(mainView)
+    adminView = AdminFrame(app)
+    managerView = ManagerFrame(app)
+    accountView = AccountFrame(app)
 
+    
+    # app.frames.append(loginView)
+    app.frames.append(mainView)
+    app.frames.append(managerView)
+    app.frames.append(adminView)
+    app.frames.append(accountView)
+    
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
+    
     app.mainloop()
