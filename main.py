@@ -13,6 +13,9 @@ cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mon
 client = MongoClient(cluster)
 
 db = client.horizonCinemasDB
+loggedInUser = None
+
+ERROR_COLOUR="#e23636"
 
 class Staff:
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
@@ -85,9 +88,10 @@ class App(ctk.CTk):
 
         self.title("Horizon Cinemas")
         if "nt" == os.name:
-            self.wm_iconbitmap(bitmap = "icon.ico")
+            self.iconbitmap(bitmap = "icon.ico")
         else:
             pass
+
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
     def switchFrame(self, frame, button):
@@ -101,15 +105,16 @@ class App(ctk.CTk):
 
         # Return all buttons to normal
         for i in self.buttons:
-            i.configure(border_width=0, fg_color="#fc3d39")
+            i.configure(border_width=0, fg_color="#bb86fc")
 
         # Change the button pressed to be highlighted
-        button.configure(border_color="#f8f8f8", border_width=4, fg_color="#e33437")
+        button.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
 
 class LoginFrame():
     def __init__(self, container):
         
         self.error = None
+        self.container = container
 
         self.loginFrame = ctk.CTkFrame(master=container, corner_radius=20)
 
@@ -126,7 +131,7 @@ class LoginFrame():
                         placeholder_text="Employee ID", 
                         font=("Roboto", 14))
         self.idEntry.pack(pady=20)
-        self.idEntry.bind('<Return>', self.login)
+        self.idEntry.bind('<Return>', self.__login)
 
         self.pwdEntry = ctk.CTkEntry(master=self.loginFrame, 
                         width=500, 
@@ -135,17 +140,19 @@ class LoginFrame():
                         show="*", 
                         font=("Roboto", 14))
         self.pwdEntry.pack(pady=20)
-        self.pwdEntry.bind('<Return>', self.login)
+        self.pwdEntry.bind('<Return>', self.__login)
 
         self.loginButton = ctk.CTkButton(master=self.loginFrame, 
                         text="Login", 
                         width=250, 
                         height=52, 
                         font=("Roboto", 20),
-                        command=self.login)
+                        fg_color="#bb86fc",
+                        hover_color="#9f54fb",
+                        command=self.__login)
         self.loginButton.pack(pady=20)
 
-    def login(self, event=None):
+    def __login(self, event=None):
 
         # Get input from the entry widgets
         employeeID = self.idEntry.get()
@@ -159,7 +166,7 @@ class LoginFrame():
 
             # Make sure that employee id is 6 digits
             if(len(str(employeeID)) != 6):
-                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a 6 digit number", text_color="red", font=("Roboto", 18))
+                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a 6 digit number", text_color=ERROR_COLOUR, font=("Roboto", 18))
                 self.error.pack()
                 return
 
@@ -171,11 +178,12 @@ class LoginFrame():
                 hash = result.get("password_hash")
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
+                    loggedInUser = result
                     # If login is successful show the view menu and the main page
                     menu.menuFrame.pack(fill="both")
-                    menu.bookingStaffButton.configure(border_color="#f8f8f8", border_width=4, fg_color="#e33437")
+                    menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
                     loginView.loginFrame.pack_forget()
-                    mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
+                    self.container.switchFrame(mainView.frame, menu.bookingStaffButton)
 
                 else:
                     # Clear the password entry field
@@ -183,21 +191,21 @@ class LoginFrame():
 
                     # More error checking
                     if(len(str(password)) < 8 or len(str(password)) > 16):
-                        self.error = ctk.CTkLabel(master=self.loginFrame, text="The password should be 8 to 16 characters long", text_color="red", font=("Roboto", 18))
+                        self.error = ctk.CTkLabel(master=self.loginFrame, text="The password should be 8 to 16 characters long", text_color=ERROR_COLOUR, font=("Roboto", 18))
                         self.error.pack()
                         return
-                    self.error = ctk.CTkLabel(master=self.loginFrame, text="The password you entered is incorrect, try again", text_color="red", font=("Roboto", 18))
+                    self.error = ctk.CTkLabel(master=self.loginFrame, text="The password you entered is incorrect, try again", text_color=ERROR_COLOUR, font=("Roboto", 18))
                     self.error.pack()
                     return
             else:
-                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID does not exist", text_color="red", font=("Roboto", 18))
+                self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID does not exist", text_color=ERROR_COLOUR, font=("Roboto", 18))
                 self.error.pack()
                 return
 
         except ValueError:
             if(self.error != None):
                 self.error.pack_forget()
-            self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red", font=("Roboto", 18))
+            self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
 
 class MainFrame():
@@ -236,6 +244,8 @@ class AccountFrame():
 class MenuFrame():
     def __init__(self, container):
 
+        self.container = container
+
         self.menuFrame = ctk.CTkFrame(master=container, 
                                 width=app.width, 
                                 border_width=1, 
@@ -243,15 +253,18 @@ class MenuFrame():
 
         buttonPaddingX = 25
 
+        self.menuFrame.grid_rowconfigure(0, weight=1)
+        self.menuFrame.grid_columnconfigure(0, weight=1)
+
         # Create the buttons to allow for view switching
         self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
-                                    text="Booking Staff View", 
+                                    text="Booking", 
                                     width=250,
                                     height=75,
                                     font=("", 16, "bold"), 
                                     corner_radius=7,
-                                    fg_color="#fc3d39",
-                                    hover_color="#e33437",
+                                    fg_color="#bb86fc",
+                                    hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(mainView.frame, self.bookingStaffButton))
 
         self.adminButton = ctk.CTkButton(master=self.menuFrame, 
@@ -260,8 +273,8 @@ class MenuFrame():
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
-                                    fg_color="#fc3d39",
-                                    hover_color="#e33437",
+                                    fg_color="#bb86fc",
+                                    hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(adminView.frame, self.adminButton))
 
         self.managerButton = ctk.CTkButton(master=self.menuFrame, 
@@ -270,8 +283,8 @@ class MenuFrame():
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
-                                    fg_color="#fc3d39",
-                                    hover_color="#e33437",
+                                    fg_color="#bb86fc",
+                                    hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(managerView.frame, self.managerButton))
 
         self.accountButton = ctk.CTkButton(master=self.menuFrame, 
@@ -280,19 +293,45 @@ class MenuFrame():
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
-                                    fg_color="#fc3d39",
-                                    hover_color="#e33437",
+                                    fg_color="#bb86fc",
+                                    hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(accountView.frame, self.accountButton))
+        
+        self.logoutButton = ctk.CTkButton(master=self.menuFrame, 
+                            text="Logout",
+                            width=150,
+                            height=75,
+                            font=("", 16, "bold"),
+                            corner_radius=7,
+                            fg_color="#ff0266",
+                            hover_color="#e8005c",
+                            border_color="#ff1c75",
+                            border_width=1,
+                            command=self.__logout)
 
         # Put them on the GUI Grid inline and append them to a buttons array
-        self.bookingStaffButton.grid(row=0, column=0, padx=((app.width/5.5), buttonPaddingX), pady=(37, 37))
+        self.bookingStaffButton.grid(row=0, column=0, padx=((app.width/6.5), buttonPaddingX), pady=(37, 37))
         self.adminButton.grid(row=0, column=1, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
         self.managerButton.grid(row=0, column=2, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
         self.accountButton.grid(row=0, column=3, padx=(buttonPaddingX, 0), pady=(37, 37))
+        self.logoutButton.grid(row=0, column=4, padx=(275, 50), pady=(37, 37))
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
         container.buttons.append(self.accountButton)
+
+    def __logout(self):
+        menu.menuFrame.pack_forget()
+        
+        for frame in self.container.frames:
+            frame.frame.pack_forget()
+        
+        loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
+        loginView.pwdEntry.delete(0, "end")
+        loginView.idEntry.delete(0, "end")
+
+        loggedInUser = None
+
 
 if(__name__ == "__main__"):
     # print(client.list_database_names())
@@ -313,5 +352,9 @@ if(__name__ == "__main__"):
     app.frames.append(accountView)
     
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
-    
+    # menu.menuFrame.pack(fill="both")
+    # menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
+    # loginView.loginFrame.pack_forget()
+    # mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
+
     app.mainloop()
