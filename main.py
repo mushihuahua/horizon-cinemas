@@ -61,6 +61,115 @@ class Report:
     def displayReport(self):
         pass
 
+class Cinema:
+    def __init__(self, city, location):
+        self.__city = city
+        self.__location = location
+        self.__screens = []
+        self.__listings = []
+        self.__bookings = []
+        self.__staffMembers = []
+        
+    def getListings(self):
+        pass
+    
+    def makeBooking(self, newBooking):
+        pass
+    
+    def cancelBooking(self, bookingReference):
+        pass
+
+    def addListing(self, listing): 
+        pass
+
+    def removeListing(self, listing):
+        pass
+
+    def hireStaffMember(self, staffMember):
+        pass
+
+    def removeStaffMember(self, staffMember):
+        pass
+
+    def addScreen(self, screen):
+        pass
+
+    def removeScreen(self, screen):
+        pass
+
+    def getCity(self):
+        pass
+    
+class CityContainer: 
+    def __init__(self):
+        self.__cities = []
+
+    def addCity(self, city):
+        pass
+    
+    def removeCity(self, city):
+        pass
+
+class City:
+    def __init__(self, name, morningPrice, afternoonPrice, eveningPrice):
+        self.__name = name
+        self.__morningPrice = morningPrice
+        self.__afternoonPrice = afternoonPrice
+        self.__eveningPrice = eveningPrice
+        self.__cinemas = []
+
+    def getTicketPrice(self, time):
+        pass
+
+    def addCinema(self, cinema):
+        pass
+
+    def removeCinema(self, cinema):
+        pass
+
+    def setMorningTicketPrice(self, newPrice):
+        pass
+
+    def setAfternoonTicketPrice(self, newPrice):
+        pass
+
+    def setEveningTicketPrice(self, newPrice):
+        pass
+
+    def makeBookingAtDifferentCinema(self, cinema, city):
+        pass
+
+class Listing: 
+    def __init__(self,filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
+        self.__filmName = filmName
+        self.__filmDate = filmDate
+        self.__filmDescription = filmDescription
+        self.__actorDetails = actorDetails
+        self.__filmGenre = filmGenre
+        self.__filmAge = filmAge
+        self.__filmRating = filmRating
+
+    def getListingInformation(self):
+        pass
+
+    def changeListingInformation(self):
+        pass
+    
+    def getShows(self):
+        pass
+
+    def getFilmName(self):
+        pass
+
+    def getFilmDate(self):
+        pass
+
+    def addShow(self, show):
+        pass
+
+    def removeShow(self, show):
+        pass
+
 
 '''
 test = Staff(1, "hi", "Steve Bannon", "test", "Steve", "Bannon")
@@ -176,96 +285,6 @@ class MainFrame(ctk.CTkFrame):
                 self.error.pack_forget()
             self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color="red", font=("Roboto", 18))
             self.error.pack()
-
-
-class cinema:
-    def __init__(self, city, location, screens, listings, booking, staffMembers):
-        self.__city = city
-        self.__location = location
-        self.__screens = screens
-        self.__listings = listings
-        self.__booking = booking
-        self.__staffMembers = staffMembers
-        
-    def getListings(self):
-        return listing
-    
-    def makeBooking(self, makeBooking, booking):
-        makeBooking = booking
-    
-    def cancelBooking(self, bookingReference):
-        pass
-
-    def addListing(self, listings): 
-        pass
-
-    def removeListing(self, Listing):
-        pass
-
-    def hireStaffMember(self, newStaff):
-        pass
-
-    def removeStaffMember(self):
-        pass
-
-    def addScreen(self):
-        pass
-
-    def removeScreen(self):
-        pass
-
-    def getCity():
-        pass
-    
-class cityContainer: 
-    def __init__(self, city):
-        self.__city = city
-
-    def addCity(self):
-        pass
-
-class city:
-    def __init__(self, name, morningPrice, afternoonPrice, eveningPrice, cinema):
-        self.__name = name
-        self.__morningPrice = morningPrice
-        self.__afternoonPrice = afternoonPrice
-        self.__eveningPrice = eveningPrice
-        self.__cinema = cinema
-
-    def getTicketPrice():
-        pass
-
-class listing: 
-    def __init__(self,filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating, shows):
-        self.__filmName = filmName
-        self.__filmDate = filmDate
-        self.__filmDescription = filmDescription
-        self.__actorDetails = actorDetails
-        self.__filmGenre = filmGenre
-        self.__filmAge = filmAge
-        self.__filmRating = filmRating
-        self.__shows = shows
-
-    def getListingInformation(self):
-        pass
-
-    def changeListingInformation(self):
-        pass
-    
-    def getShows(self):
-        pass
-
-    def getFilmName(self):
-        pass
-
-    def getFilmDate(self):
-        pass
-
-    def addShow(self):
-        pass
-
-    def removeShow(self):
-        pass
 
 if(__name__ == "__main__"):
     # print(client.list_database_names())
