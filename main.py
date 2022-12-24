@@ -1,10 +1,13 @@
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import weakref
+import random
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
@@ -13,9 +16,8 @@ cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mon
 client = MongoClient(cluster)
 
 db = client.horizonCinemasDB
-loggedInUser = None
-
 ERROR_COLOUR="#e23636"
+SUCCESS_COLOUR="#66bb6a"
 
 class Staff:
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
@@ -42,20 +44,32 @@ class BookingStaff(Staff):
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-class Manager(BookingStaff): 
+class Admin(BookingStaff): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-    
-class Admin(Manager): 
-    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName, report):
-        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-        self.__report = report 
-    
+        
     def generateReport(self):
-        pass
+        # Place holder
+        self.__report = None
+    
+class Manager(Admin): 
+    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
+        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
+
+    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
+        newEmployee = {
+            "_id": newEmployeeID,
+            "password_hash": newPasswordHash,
+            "first_name": newFirstName,
+            "last_name": newLastName,
+            "type": newType,
+            "cinema": ObjectId("63a22d895cbf5a11ca1f710e") # Change later
+        }
+
+        return db.staff.insert_one(newEmployee).acknowledged
 
 class Report:
-    def __init__(self, numberOfListingBookings, totalMonthlyRevenue, topFilm, staffBookings):
+    def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
         self.__totalMonthlyRevenue = totalMonthlyRevenue
         self.__topFilm = topFilm
@@ -63,6 +77,15 @@ class Report:
 
     def displayReport(self):
         pass
+
+
+staffTypes = {
+    "Booking Staff": BookingStaff,
+    "Admin": Admin,
+    "Manager": Manager
+}
+
+loggedInUser = Staff(0, "", 0, "", "")
 
 
 '''
@@ -89,8 +112,6 @@ class App(ctk.CTk):
         self.title("Horizon Cinemas")
         if "nt" == os.name:
             self.iconbitmap(bitmap = "icon.ico")
-        else:
-            pass
 
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
@@ -178,12 +199,21 @@ class LoginFrame():
                 hash = result.get("password_hash")
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
-                    loggedInUser = result
+                    global loggedInUser
+
+                    staffType = result.get("type")
+
+                    loggedInUser = staffTypes[staffType](result.get("_id"), result.get("password_hash"), result.get("cinema"), result.get("first_name"), result.get("last_name"))
+
                     # If login is successful show the view menu and the main page
                     menu.menuFrame.pack(fill="both")
                     menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
                     loginView.loginFrame.pack_forget()
                     self.container.switchFrame(mainView.frame, menu.bookingStaffButton)
+
+                    # Go through all instances of InfoFrame and change the employeeLabel text to the logged in user's information
+                    for info in InfoFrame.infoList:
+                        info.employeeLabel.configure(text=f"{loggedInUser.fullName} - {loggedInUser.__class__.__name__}")
 
                 else:
                     # Clear the password entry field
@@ -224,13 +254,244 @@ class AdminFrame():
         self.test = ctk.CTkLabel(master=self.frame, text="Admin")
         self.test.pack()
 
+class InfoFrame():
+    infoList = []
+    def __init__(self, container):
+        self.__class__.infoList.append(weakref.proxy(self))
+        self.employeeLabel = ctk.CTkLabel(master=container,
+                                    font=("Roboto", 16))
+
+        self.cinemaLabel = ctk.CTkLabel(master=container, 
+                            text="Bristol, Cabot Circus",
+                            font=("Roboto", 16))
 class ManagerFrame():
     def __init__(self, container):
 
+        self.frames = []
+        self.error = None
+        self.successMessage = None
+
         self.frame = ctk.CTkFrame(master=container, corner_radius=20)
 
-        self.test = ctk.CTkLabel(master=self.frame, text="Manager")
-        self.test.pack()
+        self.inFrame = ctk.CTkFrame(master=self.frame, corner_radius=20)
+        self.createAccountFrame = ctk.CTkFrame(master=self.frame, corner_radius=20)
+
+        self.frames.append(self.inFrame)
+        self.frames.append(self.createAccountFrame)
+
+        self.buttonsFrame = ctk.CTkFrame(master=self.frame, corner_radius=20)
+
+        self.info = InfoFrame(self.inFrame)
+
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(2, weight=1)
+        self.frame.grid_columnconfigure(3, weight=1)
+
+        self.text = ctk.CTkLabel(master=self.inFrame, 
+                            text="Manager View",
+                            font=("Roboto", 48))
+
+        self.addCityButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                    text="Add City", 
+                                    width=250,
+                                    height=75,
+                                    font=("", 18, "bold"), 
+                                    corner_radius=7,
+                                    fg_color="#9f54fb",
+                                    hover_color="#a722fa")
+
+        self.addCinemaButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                    text="Add Cinema", 
+                                    width=250,
+                                    height=75,
+                                    font=("", 18, "bold"), 
+                                    corner_radius=7,
+                                    fg_color="#9f54fb",
+                                    hover_color="#a722fa")
+
+        self.viewEmployeesButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                    text="View Staff Members", 
+                                    width=400,
+                                    height=75,
+                                    font=("", 18, "bold"), 
+                                    corner_radius=7,
+                                    fg_color="#9f54fb",
+                                    hover_color="#a722fa")
+
+        self.createEmployeeAccount = ctk.CTkButton(master=self.buttonsFrame, 
+                                    text="Create Staff Member Account", 
+                                    width=400,
+                                    height=75,
+                                    font=("", 18, "bold"), 
+                                    corner_radius=7,
+                                    fg_color="#9f54fb",
+                                    hover_color="#a722fa",
+                                    command=lambda: self.switchFrames(self.createAccountFrame))
+
+        self.createLabel = ctk.CTkLabel(master=self.createAccountFrame, text="Create Staff Member Account", font=("Roboto", 32))
+        self.createLabel.pack(pady=40, padx=30)
+
+        self.firstNameEntry = ctk.CTkEntry(master=self.createAccountFrame, 
+                        width=500, 
+                        height=52, 
+                        placeholder_text="First Name", 
+                        font=("Roboto", 14))
+        self.firstNameEntry.pack(pady=20)
+        self.firstNameEntry.bind('<Return>', self.__createAccount)
+
+        self.lastNameEntry = ctk.CTkEntry(master=self.createAccountFrame, 
+                        width=500, 
+                        height=52, 
+                        placeholder_text="Last Name", 
+                        font=("Roboto", 14))
+        self.lastNameEntry.pack(pady=20)
+        self.lastNameEntry.bind('<Return>', self.__createAccount)
+
+        self.typeValue = ctk.StringVar(master=self.createAccountFrame)
+        self.typeValue.set("Select Staff Type")
+        types = ["Booking Staff", "Admin", "Manager"]
+
+        self.staffType = ctk.CTkOptionMenu(master=self.createAccountFrame,
+                                    fg_color="#bb86fc",
+                                    button_color="#9f54fb",
+                                    button_hover_color="#a722fa", 
+                                    variable=self.typeValue, 
+                                    values=types,
+                                    width=500, 
+                                    height=52)
+
+        self.staffType.pack(pady=20)
+
+        self.idEntry = ctk.CTkEntry(master=self.createAccountFrame, 
+                        width=500, 
+                        height=52, 
+                        placeholder_text="Employee ID", 
+                        font=("Roboto", 14))
+        self.idEntry.pack(pady=20)
+        self.idEntry.bind('<Return>', self.__createAccount)
+
+
+        self.pwdEntry = ctk.CTkEntry(master=self.createAccountFrame, 
+                        width=500, 
+                        height=52, 
+                        placeholder_text="Password",
+                        show="*",
+                        font=("Roboto", 14))
+        self.pwdEntry.pack(pady=20)
+        self.pwdEntry.bind('<Return>', self.__createAccount)
+
+        self.createButton = ctk.CTkButton(master=self.createAccountFrame, 
+                        text="Create Account", 
+                        width=250, 
+                        height=52, 
+                        font=("Roboto", 20),
+                        fg_color="#bb86fc",
+                        hover_color="#9f54fb",
+                        command=self.__createAccount)
+
+        self.createButton.pack(pady=20)        
+
+        self.inFrame.pack(pady=20, padx=20, fill="both", expand=True)
+        self.text.place(relx=.5, rely=.2, anchor="center")
+        self.info.employeeLabel.place(relx=.5, rely=.3, anchor="center")
+        self.info.cinemaLabel.place(relx=.5, rely=.35, anchor="center")
+
+        self.buttonsFrame.pack(fill="both", padx=20)
+        self.addCityButton.grid(row=1, column=0, sticky="news", padx=(160, 25), pady=25)
+        self.addCinemaButton.grid(row=1, column=1, sticky="news", padx=(25, 25), pady=25)
+        self.viewEmployeesButton.grid(row=1, column=2, sticky="news", padx=(25, 25), pady=25)
+        self.createEmployeeAccount.grid(row=1, column=3, sticky="news", padx=(25, 160), pady=25)
+
+    def __createAccount(self, event=None):
+
+        firstName = self.firstNameEntry.get()
+        lastName = self.lastNameEntry.get()
+        id = self.idEntry.get()
+        pwd = self.pwdEntry.get()
+        empType = self.typeValue.get()
+
+        if(self.error != None):
+            self.error.pack_forget()
+        
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+
+        if(len(firstName) <= 1):
+            self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Invalid first name", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return   
+        
+        if(len(lastName) <= 1):
+            self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Invalid last name", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return   
+
+        try:
+            id = int(id)
+
+            if(empType == "Select Staff Type"):
+                self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Select a Staff Type", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                self.error.pack()
+                return
+
+            if(len(str(id)) != 6):
+                self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Employee ID should be a 6 digit number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                self.error.pack()
+                return
+
+            if(db.staff.find_one({"_id": id}) != None):
+                self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Employee ID already exists", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                self.error.pack()
+                return
+
+            if(len(str(pwd)) < 8 or len(str(pwd)) > 16):
+                self.error = ctk.CTkLabel(master=self.createAccountFrame, text="The password should be 8 to 16 characters long", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                self.error.pack()
+                return
+
+            success = False
+            if(type(loggedInUser) is Manager):
+                success = loggedInUser.createNewEmployee(firstName, lastName, id, generate_password_hash(pwd), empType)
+
+            if(success):
+                self.successMessage = ctk.CTkLabel(master=self.createAccountFrame, text="Employee account created successfully", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+                self.successMessage.pack()
+
+                self.firstNameEntry.delete(0, "end")
+                self.lastNameEntry.delete(0, "end")
+                self.idEntry.delete(0, "end")
+                self.pwdEntry.delete(0, "end")
+                self.typeValue.set("Select Staff Type")
+
+
+            else:
+                self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Error occured, account could not be created", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                self.error.pack()
+
+
+        except ValueError:
+            if(self.error != None):
+                self.error.pack_forget()
+            self.error = ctk.CTkLabel(master=self.createAccountFrame, text="Employee ID should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+
+
+    def switchFrames(self, frame):
+
+        self.buttonsFrame.pack_forget()
+
+        # Unpack all the view frames
+        for i in self.frames:
+            i.pack_forget()
+        
+        # Pack the view frame switched to
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+
+        self.buttonsFrame.pack(fill="both", padx=20)
+
+
 
 class AccountFrame():
     def __init__(self, container):
@@ -252,9 +513,6 @@ class MenuFrame():
                                 border_color="black")
 
         buttonPaddingX = 25
-
-        self.menuFrame.grid_rowconfigure(0, weight=1)
-        self.menuFrame.grid_columnconfigure(0, weight=1)
 
         # Create the buttons to allow for view switching
         self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
@@ -310,11 +568,11 @@ class MenuFrame():
                             command=self.__logout)
 
         # Put them on the GUI Grid inline and append them to a buttons array
-        self.bookingStaffButton.grid(row=0, column=0, padx=((app.width/6.5), buttonPaddingX), pady=(37, 37))
-        self.adminButton.grid(row=0, column=1, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.managerButton.grid(row=0, column=2, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.accountButton.grid(row=0, column=3, padx=(buttonPaddingX, 0), pady=(37, 37))
-        self.logoutButton.grid(row=0, column=4, padx=(275, 50), pady=(37, 37))
+        self.bookingStaffButton.place(relx=.1, rely=.5, anchor="center")
+        self.adminButton.place(relx=.25, rely=.5, anchor="center")
+        self.managerButton.place(relx=.4, rely=.5, anchor="center")
+        self.accountButton.place(relx=.55, rely=.5, anchor="center")
+        self.logoutButton.place(relx=.95, rely=.5, anchor="center")
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
@@ -330,7 +588,7 @@ class MenuFrame():
         loginView.pwdEntry.delete(0, "end")
         loginView.idEntry.delete(0, "end")
 
-        loggedInUser = None
+        loggedInUser = Staff(0, "", 0, "", "")
 
 
 if(__name__ == "__main__"):
