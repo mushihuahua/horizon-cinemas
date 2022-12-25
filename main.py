@@ -148,7 +148,7 @@ class Listing:
         self.__filmGenre = filmGenre
         self.__filmAge = filmAge
         self.__filmRating = filmRating
-
+ 
     def getListingInformation(self):
         pass
 
@@ -171,13 +171,142 @@ class Listing:
         pass
 
 
-'''
-test = Staff(1, "hi", "Steve Bannon", "test", "Steve", "Bannon")
-print(test)
-newPassword = "hello"
-test.changePassword("hello")
-print(test)
-'''
+class Show:
+    def __init__(self, listing, date, time, screen):
+        self.__listing = listing
+        self.__date = date
+        self.__time = time
+        self.__screen = screen
+        
+    def getScreen(self, Screen):
+        pass
+
+    def getListing(self, Lising):
+        pass
+
+    def getDate(self, Date):
+        pass
+
+    def getTime(self, Time):
+        pass
+
+class Seat:
+    def __init__(self):
+        pass
+
+class UpperGallerySeat: 
+    pass
+
+class LowerHallSeat: 
+    pass
+
+class VIPSeat(UpperGallerySeat):
+    pass
+
+class TicketFactory: 
+    def getTicketType(self):
+        pass
+
+class Ticket:
+    def __init__(self, seatNo):
+        self.__seatNo = seatNo
+    
+    def getPricePercentage():
+        pass
+
+class LowerHallTicket: 
+    def getPricePercentage():
+        pass
+
+class UpperGalleryTicket: 
+    def getPricePercentage():
+        pass 
+
+class VIPTicket(UpperGalleryTicket):
+    def getPricePercentage():
+        pass   
+
+class Receipt:
+    def __init__(self, booking):
+        self.__booking = booking
+
+class AvailabilitvChecker:
+    def __init__(self, type, screen):
+        self.__type = type
+        self.__screen = screen
+
+class PaymentSystem:
+    pass        
+
+class Screen: 
+    def __init__(self, capacity):
+        self.__capacity = capacity
+        self.__screenNumber = int
+        self.__seatingCapacity = int
+        self.__seatsAvailabe = []
+        self.__seats = Seat
+        
+    def checkVIPAvailability():
+        pass
+
+    def checkUpperAvailability():
+        pass
+
+    def checkLowerAvailability():
+        pass
+
+    def addSeat():
+        pass
+
+
+class Booking: 
+    def __init__(self, show, cinema, numOfTickets, ticketType):
+        self.__show = Show
+        self.__cinema = Cinema
+        self.__numOfTickets = numOfTickets
+        self.__ticketType = ticketType
+        self.__bookingReference = int
+        self.__bookingDate = int
+        self.__numOfTickets = numOfTickets
+        self.__ticketType = ticketType 
+        self.__tickets = []
+        self.__cancelled = bool
+        self.__totalCost = float
+        self.__show = Show
+        self.__screen = Screen
+        self.__receipt = Receipt 
+        self.__cinema = Cinema 
+
+    def calculateTotal():
+        pass
+
+    def addTicket():
+        pass
+    
+    def getTotal():
+        pass
+
+    def getScreen():
+        pass
+
+    def getCinema():
+        pass
+
+    def getNumberOfTickets():
+        pass
+
+    def generateReceipt():
+        pass
+
+    def printReceipt():
+        pass
+
+    def getBookingReference():
+        pass
+
+    def cancel():
+        pass
+
 
 class App(ctk.CTk):
 
