@@ -178,57 +178,81 @@ class Show:
         self.__time = time
         self.__screen = screen
         
-    def getScreen(self, Screen):
+    def getScreen(self):
         pass
 
-    def getListing(self, Lising):
+    def getListing(self):
         pass
 
-    def getDate(self, Date):
+    def getDate(self):
         pass
 
-    def getTime(self, Time):
+    def getTime(self):
         pass
 
 class Seat:
-    def __init__(self):
-        pass
+    def __init__(self, seatNumber, available=True):
+        self.__seatNumber = seatNumber
+        self.__available = available
 
-class UpperGallerySeat: 
-    pass
+    def changeAvailability(self):
+        if(self.__available):
+            self.__available = False
+        else:
+            self.__available = True
+        
+    def getAvailability(self):
+        return self.__available
 
-class LowerHallSeat: 
-    pass
+    def getSeatNumber(self):
+        return self.__seatNumber
+
+class LowerHallSeat(Seat): 
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
+
+class UpperGallerySeat(Seat): 
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
 
 class VIPSeat(UpperGallerySeat):
-    pass
-
-class TicketFactory: 
-    def getTicketType(self):
-        pass
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
 
 class Ticket:
     def __init__(self, seatNo):
         self.__seatNo = seatNo
     
-    def getPricePercentage():
+    def getPricePercentage(self):
         pass
 
-class LowerHallTicket: 
-    def getPricePercentage():
-        pass
+class LowerHallTicket(Ticket): 
+    def getPricePercentage(self):
+        return 1
 
-class UpperGalleryTicket: 
-    def getPricePercentage():
-        pass 
+class UpperGalleryTicket(Ticket): 
+    def getPricePercentage(self):
+        return 1.2 
 
 class VIPTicket(UpperGalleryTicket):
-    def getPricePercentage():
-        pass   
+    def getPricePercentage(self):
+        return 1.2 * 1.2   
+
+class TicketFactory: 
+    def getTicketType(self, ticketType):
+        if(ticketType == "Lower Hall"):
+            return LowerHallTicket
+        elif(ticketType == "Upper Gallery"):
+            return UpperGalleryTicket
+        elif(ticketType == "VIP"):
+            return VIPTicket
 
 class Receipt:
     def __init__(self, booking):
         self.__booking = booking
+
+    def displayReceipt(self):
+        pass
 
 class AvailabilitvChecker:
     def __init__(self, type, screen):
@@ -244,68 +268,77 @@ class Screen:
         self.__screenNumber = int
         self.__seatingCapacity = int
         self.__seatsAvailabe = []
-        self.__seats = Seat
+        self.__seats = []
         
-    def checkVIPAvailability():
+    def checkVIPAvailability(self):
         pass
 
-    def checkUpperAvailability():
+    def checkUpperAvailability(self):
         pass
 
-    def checkLowerAvailability():
+    def checkLowerAvailability(self):
         pass
 
-    def addSeat():
+    def addSeat(self):
         pass
 
+    def getSeats(self):
+        return self.__seats
+
+    def getAvailableSeats(self):
+        pass
+
+
+class AvailabilityChecker:
+    def __init__(self, seatType, screen):
+        self.seatType = seatType
+        self.screen = screen
+    
+    def checkAvailability(self):
+        pass
 
 class Booking: 
-    def __init__(self, show, cinema, numOfTickets, ticketType):
-        self.__show = Show
-        self.__cinema = Cinema
-        self.__numOfTickets = numOfTickets
+    def __init__(self, show, cinema, screen, ticketType, bookingDate):
+        self.__bookingReference = int # Randomly Generated
+        self.__bookingDate = bookingDate
         self.__ticketType = ticketType
-        self.__bookingReference = int
-        self.__bookingDate = int
-        self.__numOfTickets = numOfTickets
-        self.__ticketType = ticketType 
         self.__tickets = []
-        self.__cancelled = bool
-        self.__totalCost = float
-        self.__show = Show
-        self.__screen = Screen
-        self.__receipt = Receipt 
-        self.__cinema = Cinema 
+        self.__cancelled = False
+        self.__totalCost = 0
+        self.__show = show
+        self.__screen = screen
+        self.__receipt = None
+        self.__cinema = cinema 
 
-    def calculateTotal():
+    def calculateTotal(self):
         pass
 
-    def addTicket():
+    def addTicket(self):
         pass
     
-    def getTotal():
+    def getTotal(self):
+        return self.__totalCost
+
+    def getScreen(self):
+        return self.__screen
+
+    def getCinema(self):
+        return self.__cinema
+
+    def getNumberOfTickets(self):
+        return len(self.__tickets)
+
+    def generateReceipt(self):
+        self.__receipt = Receipt(self)
+
+    def printReceipt(self):
         pass
 
-    def getScreen():
-        pass
+    def getBookingReference(self):
+        return self.__bookingReference
 
-    def getCinema():
-        pass
-
-    def getNumberOfTickets():
-        pass
-
-    def generateReceipt():
-        pass
-
-    def printReceipt():
-        pass
-
-    def getBookingReference():
-        pass
-
-    def cancel():
-        pass
+    def cancel(self):
+        self.__cancelled = True
 
 
 class App(ctk.CTk):
