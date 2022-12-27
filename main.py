@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
@@ -6,6 +7,9 @@ from PIL import Image, ImageTk
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from tkcalendar import *
+import weakref
+import random
+
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -14,9 +18,8 @@ cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mon
 client = MongoClient(cluster)
 
 db = client.horizonCinemasDB
-loggedInUser = None
-
 ERROR_COLOUR="#e23636"
+SUCCESS_COLOUR="#66bb6a"
 
 class Staff:
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
@@ -43,20 +46,32 @@ class BookingStaff(Staff):
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-class Manager(BookingStaff): 
+class Admin(BookingStaff): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-    
-class Admin(Manager): 
-    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName, report):
-        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-        self.__report = report 
-    
+        
     def generateReport(self):
-        pass
+        # Place holder
+        self.__report = None
+    
+class Manager(Admin): 
+    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
+        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
+
+    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
+        newEmployee = {
+            "_id": newEmployeeID,
+            "password_hash": newPasswordHash,
+            "first_name": newFirstName,
+            "last_name": newLastName,
+            "type": newType,
+            "cinema": ObjectId("63a22d895cbf5a11ca1f710e") # Change later
+        }
+
+        return db.staff.insert_one(newEmployee).acknowledged
 
 class Report:
-    def __init__(self, numberOfListingBookings, totalMonthlyRevenue, topFilm, staffBookings):
+    def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
         self.__totalMonthlyRevenue = totalMonthlyRevenue
         self.__topFilm = topFilm
@@ -64,6 +79,15 @@ class Report:
 
     def displayReport(self):
         pass
+
+
+staffTypes = {
+    "Booking Staff": BookingStaff,
+    "Admin": Admin,
+    "Manager": Manager
+}
+
+loggedInUser = Staff(0, "", 0, "", "")
 
 
 '''
@@ -90,8 +114,6 @@ class App(ctk.CTk):
         self.title("Horizon Cinemas")
         if "nt" == os.name:
             self.iconbitmap(bitmap = "icon.ico")
-        else:
-            pass
 
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
@@ -110,6 +132,18 @@ class App(ctk.CTk):
 
         # Change the button pressed to be highlighted
         button.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
+
+# class InfoFrame():
+#     infoList = []
+#     def __init__(self, container):
+#         self.__class__.infoList.append(weakref.proxy(self))
+#         print(self.__class__.infoList[0])
+#         self.employeeLabel = ctk.CTkLabel(master=container,
+#                                     font=("Roboto", 16))
+
+#         self.cinemaLabel = ctk.CTkLabel(master=container, 
+#                             text="Bristol, Cabot Circus",
+#                             font=("Roboto", 16))
 
 class LoginFrame():
     def __init__(self, container):
@@ -179,12 +213,38 @@ class LoginFrame():
                 hash = result.get("password_hash")
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
-                    loggedInUser = result
+                    
+                    staffType = result.get("type")
+
+                    loggedInUser = staffTypes[staffType](result.get("_id"), result.get("password_hash"), result.get("cinema"), result.get("first_name"), result.get("last_name"))
+
+                    from pages.managerPage import ManagerFrame
+                     
+                    global mainView, adminView, managerView, accountView, menu
+                    menu = MenuFrame(app)
+                    mainView = MainFrame(app)
+                    adminView = AdminFrame(app)
+                    managerView = ManagerFrame(app, loggedInUser)
+                    accountView = AccountFrame(app)
+                    
+                    # app.frames.append(loginView)
+                    app.frames.append(mainView)
+                    app.frames.append(managerView)
+                    app.frames.append(adminView)
+                    app.frames.append(accountView)
+
+
                     # If login is successful show the view menu and the main page
                     menu.menuFrame.pack(fill="both")
                     menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
                     loginView.loginFrame.pack_forget()
                     self.container.switchFrame(mainView.frame, menu.bookingStaffButton)
+
+                    # # Go through all instances of InfoFrame and change the employeeLabel text to the logged in user's information
+                    # for info in InfoFrame.infoList:
+                    #     print("hi")
+                    #     print(loggedInUser.fullName)
+                    #     info.employeeLabel.configure(text=f"{loggedInUser.fullName} - {loggedInUser.__class__.__name__}")
 
                 else:
                     # Clear the password entry field
@@ -331,13 +391,6 @@ class AdminFrame():
         self.test = ctk.CTkLabel(master=self.frame, text="Admin")
         self.test.pack()
 
-class ManagerFrame():
-    def __init__(self, container):
-
-        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
-
-        self.test = ctk.CTkLabel(master=self.frame, text="Manager")
-        self.test.pack()
 
 class AccountFrame():
     def __init__(self, container):
@@ -359,9 +412,6 @@ class MenuFrame():
                                 border_color="black")
 
         buttonPaddingX = 25
-
-        self.menuFrame.grid_rowconfigure(0, weight=1)
-        self.menuFrame.grid_columnconfigure(0, weight=1)
 
         # Create the buttons to allow for view switching
         self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
@@ -417,12 +467,11 @@ class MenuFrame():
                             command=self.__logout)
 
         # Put them on the GUI Grid inline and append them to a buttons array
-        ''' (app.width/6.5) '''
-        self.bookingStaffButton.grid(row=0, column=0, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.adminButton.grid(row=0, column=1, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.managerButton.grid(row=0, column=2, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.accountButton.grid(row=0, column=3, padx=(buttonPaddingX, 0), pady=(37, 37))
-        self.logoutButton.grid(row=0, column=4, padx=(275, 50), pady=(37, 37))
+        self.bookingStaffButton.place(relx=.1, rely=.5, anchor="center")
+        self.adminButton.place(relx=.25, rely=.5, anchor="center")
+        self.managerButton.place(relx=.4, rely=.5, anchor="center")
+        self.accountButton.place(relx=.55, rely=.5, anchor="center")
+        self.logoutButton.place(relx=.95, rely=.5, anchor="center")
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
@@ -438,35 +487,20 @@ class MenuFrame():
         loginView.pwdEntry.delete(0, "end")
         loginView.idEntry.delete(0, "end")
 
-        loggedInUser = None
+        loggedInUser = Staff(0, "", 0, "", "")
+
 
 
 if(__name__ == "__main__"):
     # print(client.list_database_names())
     app = App()
 
-    menu = MenuFrame(app)
     loginView = LoginFrame(app)
-    mainView = MainFrame(app)
-    adminView = AdminFrame(app)
-    managerView = ManagerFrame(app)
-    accountView = AccountFrame(app)
 
-    
-    # app.frames.append(loginView)
-    app.frames.append(mainView)
-    app.frames.append(managerView)
-    app.frames.append(adminView)
-    app.frames.append(accountView)
-    
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
-    menu.menuFrame.pack(fill="both")
-    menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
-    loginView.loginFrame.pack_forget()
-    mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
+    # menu.menuFrame.pack(fill="both")
+    # menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
+    # loginView.loginFrame.pack_forget()
+    # mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
 
     app.mainloop()
-
-
-# 123456
-# randompass
