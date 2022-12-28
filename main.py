@@ -574,7 +574,7 @@ class MenuFrame():
         self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Booking", 
                                     # nav button width is 1/6th of the total app width
-                                    width=app.width/6-73,
+                                    width=250,
                                     height=75,
                                     font=("", 16, "bold"), 
                                     corner_radius=7,
@@ -584,7 +584,7 @@ class MenuFrame():
 
         self.adminButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Admin View",
-                                    width=app.width/6-73,
+                                    width=250,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
@@ -594,7 +594,7 @@ class MenuFrame():
 
         self.managerButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Manager View",
-                                    width=app.width/6-73,
+                                    width=250,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
@@ -604,7 +604,7 @@ class MenuFrame():
 
         self.accountButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Account",
-                                    width=app.width/6-73,
+                                    width=250,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
@@ -612,15 +612,9 @@ class MenuFrame():
                                     hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(accountView.frame, self.accountButton))
 
-        self.navSpace = ctk.CTkLabel(master=self.menuFrame, 
-                                    text="",
-                                    width=app.width/6-73,
-                                    height=75,                             
-                                    corner_radius=7)
-        
         self.logoutButton = ctk.CTkButton(master=self.menuFrame, 
                             text="Logout",
-                            width=app.width/6-73,
+                            width=250,
                             height=75,
                             font=("", 16, "bold"),
                             corner_radius=7,
@@ -630,15 +624,14 @@ class MenuFrame():
                             border_width=1,
                             command=self.__logout)
 
-        # Put them on the GUI Grid inline and append them to a buttons array
+        # Put them on the GUI Pack inline and append them to a buttons array
 
-        self.bookingStaffButton.grid(row=0, column=0, padx=5, pady=10)
-        self.adminButton.grid(row=0, column=1, padx=5, pady=10)
-        self.managerButton.grid(row=0, column=2, padx=5, pady=10)
-        self.accountButton.grid(row=0, column=3, padx=5, pady=10)
-        self.navSpace.grid_columnconfigure(4, weight=1)
-        self.navSpace.grid(row=0, column=4, padx=5, pady=10)
-        self.logoutButton.grid(row=0, column=5, padx=5, pady=10)
+        self.bookingStaffButton.pack(side=tk.LEFT, padx=15)
+        self.adminButton.pack(side=tk.LEFT, padx=15)
+        self.managerButton.pack(side=tk.LEFT, padx=15)
+        self.accountButton.pack(side=tk.LEFT, padx=15)
+
+        self.logoutButton.pack(side=tk.RIGHT, padx=20)
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
