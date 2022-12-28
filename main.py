@@ -1,22 +1,31 @@
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-from tkcalendar import *
+import weakref
+import random
+import certifi
+
+from pages.mainPage import MainFrame
+from pages.adminPage import AdminFrame
+from pages.managerPage import ManagerFrame
+from pages.accountPage import AccountFrame
+
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+ca = certifi.where()
 cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mongodb.net/?retryWrites=true&w=majority"
-client = MongoClient(cluster)
+client = MongoClient(cluster, tlsCAFile=ca)
 
 db = client.horizonCinemasDB
-loggedInUser = None
-
 ERROR_COLOUR="#e23636"
+SUCCESS_COLOUR="#66bb6a"
 
 class Staff:
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
@@ -43,20 +52,32 @@ class BookingStaff(Staff):
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-class Manager(BookingStaff): 
+class Admin(BookingStaff): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-    
-class Admin(Manager): 
-    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName, report):
-        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
-        self.__report = report 
-    
+        
     def generateReport(self):
-        pass
+        # Place holder
+        self.__report = None
+    
+class Manager(Admin): 
+    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
+        super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
+
+    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
+        newEmployee = {
+            "_id": newEmployeeID,
+            "password_hash": newPasswordHash,
+            "first_name": newFirstName,
+            "last_name": newLastName,
+            "type": newType,
+            "cinema": ObjectId("63a22d895cbf5a11ca1f710e") # Change later
+        }
+
+        return db.staff.insert_one(newEmployee).acknowledged
 
 class Report:
-    def __init__(self, numberOfListingBookings, totalMonthlyRevenue, topFilm, staffBookings):
+    def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
         self.__totalMonthlyRevenue = totalMonthlyRevenue
         self.__topFilm = topFilm
@@ -64,6 +85,294 @@ class Report:
 
     def displayReport(self):
         pass
+    
+class Cinema:
+    def __init__(self, city, location):
+        self.__city = city
+        self.__location = location
+        self.__screens = []
+        self.__listings = []
+        self.__bookings = []
+        self.__staffMembers = []
+        
+    def getListings(self):
+        pass
+    
+    def makeBooking(self, newBooking):
+        pass
+    
+    def cancelBooking(self, bookingReference):
+        pass
+
+    def addListing(self, listing): 
+        pass
+
+    def removeListing(self, listing):
+        pass
+
+    def hireStaffMember(self, staffMember):
+        pass
+
+    def removeStaffMember(self, staffMember):
+        pass
+
+    def addScreen(self, screen):
+        pass
+
+    def removeScreen(self, screen):
+        pass
+
+    def getCity(self):
+        pass
+    
+class CityContainer: 
+    def __init__(self):
+        self.__cities = []
+
+    def addCity(self, city):
+        pass
+    
+    def removeCity(self, city):
+        pass
+
+class City:
+    def __init__(self, name, morningPrice, afternoonPrice, eveningPrice):
+        self.__name = name
+        self.__morningPrice = morningPrice
+        self.__afternoonPrice = afternoonPrice
+        self.__eveningPrice = eveningPrice
+        self.__cinemas = []
+
+    def getTicketPrice(self, time):
+        pass
+
+    def addCinema(self, cinema):
+        pass
+
+    def removeCinema(self, cinema):
+        pass
+
+    def setMorningTicketPrice(self, newPrice):
+        pass
+
+    def setAfternoonTicketPrice(self, newPrice):
+        pass
+
+    def setEveningTicketPrice(self, newPrice):
+        pass
+
+    def makeBookingAtDifferentCinema(self, cinema, city):
+        pass
+
+class Listing: 
+    def __init__(self,filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
+        self.__filmName = filmName
+        self.__filmDate = filmDate
+        self.__filmDescription = filmDescription
+        self.__actorDetails = actorDetails
+        self.__filmGenre = filmGenre
+        self.__filmAge = filmAge
+        self.__filmRating = filmRating
+ 
+    def getListingInformation(self):
+        pass
+
+    def changeListingInformation(self):
+        pass
+    
+    def getShows(self):
+        pass
+
+    def getFilmName(self):
+        pass
+
+    def getFilmDate(self):
+        pass
+
+    def addShow(self, show):
+        pass
+
+    def removeShow(self, show):
+        pass
+
+
+class Show:
+    def __init__(self, listing, date, time, screen):
+        self.__listing = listing
+        self.__date = date
+        self.__time = time
+        self.__screen = screen
+        
+    def getScreen(self):
+        pass
+
+    def getListing(self):
+        pass
+
+    def getDate(self):
+        pass
+
+    def getTime(self):
+        pass
+
+class Seat:
+    def __init__(self, seatNumber, available=True):
+        self.__seatNumber = seatNumber
+        self.__available = available
+
+    def changeAvailability(self):
+        if(self.__available):
+            self.__available = False
+        else:
+            self.__available = True
+        
+    def getAvailability(self):
+        return self.__available
+
+    def getSeatNumber(self):
+        return self.__seatNumber
+
+class LowerHallSeat(Seat): 
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
+
+class UpperGallerySeat(Seat): 
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
+
+class VIPSeat(UpperGallerySeat):
+    def __init__(self, seatNumber, available=True):
+        super().__init__(seatNumber, available)
+
+class Ticket:
+    def __init__(self, seatNo):
+        self.__seatNo = seatNo
+    
+    def getPricePercentage(self):
+        pass
+
+class LowerHallTicket(Ticket): 
+    def getPricePercentage(self):
+        return 1
+
+class UpperGalleryTicket(Ticket): 
+    def getPricePercentage(self):
+        return 1.2 
+
+class VIPTicket(UpperGalleryTicket):
+    def getPricePercentage(self):
+        return 1.2 * 1.2   
+
+class TicketFactory: 
+    def getTicketType(self, ticketType):
+        if(ticketType == "Lower Hall"):
+            return LowerHallTicket
+        elif(ticketType == "Upper Gallery"):
+            return UpperGalleryTicket
+        elif(ticketType == "VIP"):
+            return VIPTicket
+
+class Receipt:
+    def __init__(self, booking):
+        self.__booking = booking
+
+    def displayReceipt(self):
+        pass
+
+class AvailabilitvChecker:
+    def __init__(self, type, screen):
+        self.__type = type
+        self.__screen = screen
+
+class PaymentSystem:
+    pass        
+
+class Screen: 
+    def __init__(self, capacity):
+        self.__capacity = capacity
+        self.__screenNumber = int
+        self.__seatingCapacity = int
+        self.__seatsAvailabe = []
+        self.__seats = []
+        
+    def checkVIPAvailability(self):
+        pass
+
+    def checkUpperAvailability(self):
+        pass
+
+    def checkLowerAvailability(self):
+        pass
+
+    def addSeat(self):
+        pass
+
+    def getSeats(self):
+        return self.__seats
+
+    def getAvailableSeats(self):
+        pass
+
+
+class AvailabilityChecker:
+    def __init__(self, seatType, screen):
+        self.seatType = seatType
+        self.screen = screen
+    
+    def checkAvailability(self):
+        pass
+
+class Booking: 
+    def __init__(self, show, cinema, screen, ticketType, bookingDate):
+        self.__bookingReference = int # Randomly Generated
+        self.__bookingDate = bookingDate
+        self.__ticketType = ticketType
+        self.__tickets = []
+        self.__cancelled = False
+        self.__totalCost = 0
+        self.__show = show
+        self.__screen = screen
+        self.__receipt = None
+        self.__cinema = cinema 
+
+    def calculateTotal(self):
+        pass
+
+    def addTicket(self):
+        pass
+    
+    def getTotal(self):
+        return self.__totalCost
+
+    def getScreen(self):
+        return self.__screen
+
+    def getCinema(self):
+        return self.__cinema
+
+    def getNumberOfTickets(self):
+        return len(self.__tickets)
+
+    def generateReceipt(self):
+        self.__receipt = Receipt(self)
+
+    def printReceipt(self):
+        pass
+
+    def getBookingReference(self):
+        return self.__bookingReference
+
+    def cancel(self):
+        self.__cancelled = True
+
+
+staffTypes = {
+    "Booking Staff": BookingStaff,
+    "Admin": Admin,
+    "Manager": Manager
+}
+
+loggedInUser = Staff(0, "", 0, "", "")
 
 
 '''
@@ -90,8 +399,6 @@ class App(ctk.CTk):
         self.title("Horizon Cinemas")
         if "nt" == os.name:
             self.iconbitmap(bitmap = "icon.ico")
-        else:
-            pass
 
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
 
@@ -110,6 +417,18 @@ class App(ctk.CTk):
 
         # Change the button pressed to be highlighted
         button.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
+
+# class InfoFrame():
+#     infoList = []
+#     def __init__(self, container):
+#         self.__class__.infoList.append(weakref.proxy(self))
+#         print(self.__class__.infoList[0])
+#         self.employeeLabel = ctk.CTkLabel(master=container,
+#                                     font=("Roboto", 16))
+
+#         self.cinemaLabel = ctk.CTkLabel(master=container, 
+#                             text="Bristol, Cabot Circus",
+#                             font=("Roboto", 16))
 
 class LoginFrame():
     def __init__(self, container):
@@ -179,12 +498,42 @@ class LoginFrame():
                 hash = result.get("password_hash")
                 if(check_password_hash(hash, password)):
                     print(f"Login Successful")
-                    loggedInUser = result
+                    
+                    staffType = result.get("type")
+
+                    loggedInUser = staffTypes[staffType](result.get("_id"), result.get("password_hash"), result.get("cinema"), result.get("first_name"), result.get("last_name"))
+
+                    from pages.mainPage import MainFrame
+                    from pages.adminPage import AdminFrame
+                    from pages.managerPage import ManagerFrame
+                    from pages.accountPage import AccountFrame
+                     
+                    global mainView, adminView, managerView, accountView, menu
+                    # MenuFrame is the navbar
+                    menu = MenuFrame(app)
+                    mainView = MainFrame(app)
+                    adminView = AdminFrame(app)
+                    managerView = ManagerFrame(app, loggedInUser)
+                    accountView = AccountFrame(app)
+                    
+                    # app.frames.append(loginView)
+                    app.frames.append(mainView)
+                    app.frames.append(managerView)
+                    app.frames.append(adminView)
+                    app.frames.append(accountView)
+
+
                     # If login is successful show the view menu and the main page
                     menu.menuFrame.pack(fill="both")
                     menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
                     loginView.loginFrame.pack_forget()
                     self.container.switchFrame(mainView.frame, menu.bookingStaffButton)
+
+                    # # Go through all instances of InfoFrame and change the employeeLabel text to the logged in user's information
+                    # for info in InfoFrame.infoList:
+                    #     print("hi")
+                    #     print(loggedInUser.fullName)
+                    #     info.employeeLabel.configure(text=f"{loggedInUser.fullName} - {loggedInUser.__class__.__name__}")
 
                 else:
                     # Clear the password entry field
@@ -209,136 +558,6 @@ class LoginFrame():
             self.error = ctk.CTkLabel(master=self.loginFrame, text="Employee ID should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
 
-# Booking View
-class MainFrame():
-    def __init__(self, container):
-
-        from datetime import datetime
-        date = datetime.today().strftime('%Y-%m-%d')
-        year = int(date[0:4])
-        month = int(date[5:7])
-        day = int(date[8:])
-
-        self.frame = ctk.CTkFrame(master=container, corner_radius=10)
-
-        self.viewTitle = ctk.CTkLabel(master=self.frame, text="Bookings", font=("Roboto", 48))
-    
-        self.calendarLabel = ctk.CTkLabel(master=self.frame, text="Select Date:", font=("Roboto", 15))
-        self.calendar = Calendar(master=self.frame, 
-                        selectmode='day', 
-                        year=year, 
-                        month=month, 
-                        day=day)
-    
-        self.selectFilmLabel = ctk.CTkLabel(master=self.frame, text="Select Film:", font=("Roboto", 15))
-        self.selectFilm = ctk.CTkOptionMenu(master=self.frame, 
-                            values=["Film 1", "Film 2", "Etc."],
-                            width=200,
-                            height=30,
-                            font=("", 16, "bold"),
-                            corner_radius=4)
-        self.selectShowingLabel = ctk.CTkLabel(master=self.frame, text="Select Showing:", font=("Roboto", 15))    
-        self.selectShowing = ctk.CTkOptionMenu(master=self.frame, 
-                            values=["Showing 1", "Showing 2", "Etc."],
-                            width=200,
-                            height=30,
-                            font=("", 16, "bold"),
-                            corner_radius=4)  
-        self.maxSeatsLabel = ctk.CTkLabel(master=self.frame, text="Max Seats:", font=("Roboto", 15)) 
-        self.maxSeats = ctk.CTkLabel(master=self.frame, text="0", font=("Roboto", 15)) 
-        self.selectTicketsLabel = ctk.CTkLabel(master=self.frame, text="Select Tickets", font=("Roboto", 18)) 
-        self.lowTicketsLabel = ctk.CTkLabel(master=self.frame, text="Lower Hall Tickets:", font=("Roboto", 15)) 
-        self.lowHallTickets = ctk.CTkOptionMenu(master=self.frame, 
-                            values=["1", "2", "Etc."],
-                            width=200,
-                            height=30,
-                            font=("", 16, "bold"),
-                            corner_radius=4)    
-        self.upperTicketsLabel = ctk.CTkLabel(master=self.frame, text="Upper Hall Tickets:", font=("Roboto", 15)) 
-        self.upperHallTickets = ctk.CTkOptionMenu(master=self.frame, 
-                            values=["1", "2", "Etc."],
-                            width=200,
-                            height=30,
-                            font=("", 16, "bold"),
-                            corner_radius=4) 
-        self.vipTicketsLabel = ctk.CTkLabel(master=self.frame, text="VIP Tickets:", font=("Roboto", 15)) 
-        self.vipHallTickets = ctk.CTkOptionMenu(master=self.frame, 
-                            values=["1", "2", "Etc."],
-                            width=200,
-                            height=30,
-                            font=("", 16, "bold"),
-                            corner_radius=4)                                     
-        self.totalPriceLabel = ctk.CTkLabel(master=self.frame, text="Total Price:", font=("Roboto", 15)) 
-        self.totalPrice = ctk.CTkLabel(master=self.frame, text="£0", font=("Roboto", 18)) 
-        self.makeBookingButton = ctk.CTkButton(master=self.frame, 
-                                    text="Make Booking",
-                                    width=200,
-                                    height=40,
-                                    font=("", 16, "bold"),
-                                    corner_radius=7)
-
-        self.viewBookingsButton = ctk.CTkButton(master=self.frame, 
-                                    text="View Bookings",
-                                    width=200,
-                                    height=40,
-                                    font=("", 16, "bold"),
-                                    corner_radius=7,
-                                    fg_color="#bb86fc",
-                                    hover_color="#9f54fb")
-
-        self.col0 = ctk.CTkLabel(master=self.frame, text=" ", width=300, height=40) 
-        self.row2 = ctk.CTkLabel(master=self.frame, text=" ", width=300, height=90) 
-    
-        self.calendarLabel.grid(row=1, column=1)
-        self.calendar.place(relx=.48, rely=.29, anchor="center")
-
-        self.viewTitle.grid(row=0, column=2, pady=30, padx=60)
-        self.viewBookingsButton.grid(row=1, column=3, pady=10, padx=10)
-
-        self.selectFilmLabel.grid(row=3, column=1)
-        self.selectFilm.grid(row=3, column=2, pady=10, padx=10)
-        self.selectShowingLabel.grid(row=4, column=1)
-        self.selectShowing.grid(row=4, column=2, pady=10, padx=10)
-        self.selectTicketsLabel.grid(row=6, column=2, pady=10, padx=10)
-        self.lowTicketsLabel.grid(row=7, column=1)
-        self.lowHallTickets.grid(row=8, column=1, pady=10, padx=10)
-        self.upperTicketsLabel.grid(row=7, column=2)
-        self.upperHallTickets.grid(row=8, column=2, pady=10, padx=10)
-        self.vipTicketsLabel.grid(row=7, column=3)
-        self.vipHallTickets.grid(row=8, column=3, pady=10, padx=10)
-        self.totalPriceLabel.grid(row=9, column=1, pady=10, padx=10)
-        self.totalPrice.grid(row=9, column=2, pady=10, padx=10)
-        self.makeBookingButton.grid(row=10, column=2, pady=10, padx=10)
-        
-        self.col0.grid(row=0, column=0)
-        self.row2.grid(row=2, column=0)
-        
-
-class AdminFrame():
-    def __init__(self, container):
-
-        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
-
-        self.test = ctk.CTkLabel(master=self.frame, text="Admin")
-        self.test.pack()
-
-class ManagerFrame():
-    def __init__(self, container):
-
-        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
-
-        self.test = ctk.CTkLabel(master=self.frame, text="Manager")
-        self.test.pack()
-
-class AccountFrame():
-    def __init__(self, container):
-
-        self.frame = ctk.CTkFrame(master=container, corner_radius=20)
-
-        self.test = ctk.CTkLabel(master=self.frame, text="Account")
-        self.test.pack()
-
-
 class MenuFrame():
     def __init__(self, container):
 
@@ -351,13 +570,11 @@ class MenuFrame():
 
         buttonPaddingX = 25
 
-        self.menuFrame.grid_rowconfigure(0, weight=1)
-        self.menuFrame.grid_columnconfigure(0, weight=1)
-
         # Create the buttons to allow for view switching
         self.bookingStaffButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Booking", 
-                                    width=250,
+                                    # nav button width is 1/6th of the total app width
+                                    width=app.width/6-73,
                                     height=75,
                                     font=("", 16, "bold"), 
                                     corner_radius=7,
@@ -367,7 +584,7 @@ class MenuFrame():
 
         self.adminButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Admin View",
-                                    width=250,
+                                    width=app.width/6-73,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
@@ -377,7 +594,7 @@ class MenuFrame():
 
         self.managerButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Manager View",
-                                    width=250,
+                                    width=app.width/6-73,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
@@ -387,17 +604,23 @@ class MenuFrame():
 
         self.accountButton = ctk.CTkButton(master=self.menuFrame, 
                                     text="Account",
-                                    width=250,
+                                    width=app.width/6-73,
                                     height=75,
                                     font=("", 16, "bold"),
                                     corner_radius=7,
                                     fg_color="#bb86fc",
                                     hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(accountView.frame, self.accountButton))
+
+        self.navSpace = ctk.CTkLabel(master=self.menuFrame, 
+                                    text="",
+                                    width=app.width/6-73,
+                                    height=75,                             
+                                    corner_radius=7)
         
         self.logoutButton = ctk.CTkButton(master=self.menuFrame, 
                             text="Logout",
-                            width=150,
+                            width=app.width/6-73,
                             height=75,
                             font=("", 16, "bold"),
                             corner_radius=7,
@@ -408,12 +631,14 @@ class MenuFrame():
                             command=self.__logout)
 
         # Put them on the GUI Grid inline and append them to a buttons array
-        ''' (app.width/6.5) '''
-        self.bookingStaffButton.grid(row=0, column=0, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.adminButton.grid(row=0, column=1, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.managerButton.grid(row=0, column=2, padx=(buttonPaddingX, buttonPaddingX), pady=(37, 37))
-        self.accountButton.grid(row=0, column=3, padx=(buttonPaddingX, 0), pady=(37, 37))
-        self.logoutButton.grid(row=0, column=4, padx=(275, 50), pady=(37, 37))
+
+        self.bookingStaffButton.grid(row=0, column=0, padx=5, pady=10)
+        self.adminButton.grid(row=0, column=1, padx=5, pady=10)
+        self.managerButton.grid(row=0, column=2, padx=5, pady=10)
+        self.accountButton.grid(row=0, column=3, padx=5, pady=10)
+        self.navSpace.grid_columnconfigure(4, weight=1)
+        self.navSpace.grid(row=0, column=4, padx=5, pady=10)
+        self.logoutButton.grid(row=0, column=5, padx=5, pady=10)
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
@@ -429,35 +654,23 @@ class MenuFrame():
         loginView.pwdEntry.delete(0, "end")
         loginView.idEntry.delete(0, "end")
 
-        loggedInUser = None
+        loggedInUser = Staff(0, "", 0, "", "")
+
 
 
 if(__name__ == "__main__"):
     # print(client.list_database_names())
     app = App()
 
-    menu = MenuFrame(app)
     loginView = LoginFrame(app)
-    mainView = MainFrame(app)
-    adminView = AdminFrame(app)
-    managerView = ManagerFrame(app)
-    accountView = AccountFrame(app)
 
-    
-    # app.frames.append(loginView)
-    app.frames.append(mainView)
-    app.frames.append(managerView)
-    app.frames.append(adminView)
-    app.frames.append(accountView)
-    
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
-    menu.menuFrame.pack(fill="both")
-    menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
-    loginView.loginFrame.pack_forget()
-    mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
+    #menu.menuFrame.pack(fill="both")
+    #menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
+    #loginView.loginFrame.pack_forget()
+    #mainView.frame.pack(pady=20, padx=60, fill="both", expand=True) 
+    
+    # 123456
+    # randompass
 
     app.mainloop()
-
-
-# 123456
-# randompass
