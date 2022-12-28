@@ -64,7 +64,7 @@ class Manager(Admin):
             "first_name": newFirstName,
             "last_name": newLastName,
             "type": newType,
-            "cinema": ObjectId("63a22d895cbf5a11ca1f710e") # Change later
+            "cinema": currentCinema.getID()
         }
 
         return db.staff.insert_one(newEmployee).acknowledged
@@ -80,13 +80,17 @@ class Report:
         pass
     
 class Cinema:
-    def __init__(self, city, location):
+    def __init__(self, id, city, location):
+        self.__id = id
         self.__city = city
         self.__location = location
         self.__screens = []
         self.__listings = []
         self.__bookings = []
         self.__staffMembers = []
+
+    def getID(self):
+        return self.__id
         
     def getListings(self):
         pass
@@ -116,17 +120,25 @@ class Cinema:
         pass
 
     def getCity(self):
-        pass
+        return self.__city
+
+    def getLocation(self):
+        return self.__location
     
 class CityContainer: 
     def __init__(self):
         self.__cities = []
+        for city in db.cities.find():
+            self.__cities.append(City(city.get("name"), city.get("morning_price"), city.get("afternoon_price"), city.get("evening_price")))
 
     def addCity(self, city):
         pass
     
     def removeCity(self, city):
         pass
+
+    def getCities(self):
+        return self.__cities
 
 class City:
     def __init__(self, name, morningPrice, afternoonPrice, eveningPrice):
@@ -135,6 +147,9 @@ class City:
         self.__afternoonPrice = afternoonPrice
         self.__eveningPrice = eveningPrice
         self.__cinemas = []
+
+    def getName(self):
+        return self.__name
 
     def getTicketPrice(self, time):
         pass
@@ -366,15 +381,11 @@ staffTypes = {
 }
 
 loggedInUser = Staff(0, "", 0, "", "")
-
-
-'''
-test = Staff(1, "hi", "Steve Bannon", "test", "Steve", "Bannon")
-print(test)
-newPassword = "hello"
-test.changePassword("hello")
-print(test)
-'''
+currentCity = City("Bristol", 6, 7, 8)
+cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
+currentCinema = None
+if(cinema != None):
+    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"))
 
 class App(ctk.CTk):
 
@@ -411,17 +422,6 @@ class App(ctk.CTk):
         # Change the button pressed to be highlighted
         button.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
 
-# class InfoFrame():
-#     infoList = []
-#     def __init__(self, container):
-#         self.__class__.infoList.append(weakref.proxy(self))
-#         print(self.__class__.infoList[0])
-#         self.employeeLabel = ctk.CTkLabel(master=container,
-#                                     font=("Roboto", 16))
-
-#         self.cinemaLabel = ctk.CTkLabel(master=container, 
-#                             text="Bristol, Cabot Circus",
-#                             font=("Roboto", 16))
 
 class LoginFrame():
     def __init__(self, container):
@@ -520,12 +520,6 @@ class LoginFrame():
                     menu.bookingStaffButton.configure(border_color="#e5d1fe", border_width=4, fg_color="#9f54fb")
                     loginView.loginFrame.pack_forget()
                     self.container.switchFrame(mainView.frame, menu.bookingStaffButton)
-
-                    # # Go through all instances of InfoFrame and change the employeeLabel text to the logged in user's information
-                    # for info in InfoFrame.infoList:
-                    #     print("hi")
-                    #     print(loggedInUser.fullName)
-                    #     info.employeeLabel.configure(text=f"{loggedInUser.fullName} - {loggedInUser.__class__.__name__}")
 
                 else:
                     # Clear the password entry field
@@ -645,6 +639,7 @@ if(__name__ == "__main__"):
     app = App()
 
     loginView = LoginFrame(app)
+    cityContainer = CityContainer()
 
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)
     # menu.menuFrame.pack(fill="both")
