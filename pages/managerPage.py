@@ -98,15 +98,15 @@ class ManagerFrame():
                                     command=lambda: self.switchFrames(self.createAccountFrame))
 
         # CREATE ACCOUNT
-        self.createLabel = ctk.CTkLabel(master=self.createAccountFrame, text="Create Staff Member Account", font=("Roboto", 32, "bold"))
-        self.createLabel.pack(pady=40, padx=30)
+        self.createLabel = ctk.CTkLabel(master=self.createAccountFrame, text="Create Staff Member Account", font=("Roboto", 32))
+        self.createLabel.place(relx=.5, rely=.2, anchor="center")
 
         self.firstNameEntry = ctk.CTkEntry(master=self.createAccountFrame, 
                         width=500, 
                         height=52, 
                         placeholder_text="First Name", 
                         font=("Roboto", 14))
-        self.firstNameEntry.pack(pady=20)
+        self.firstNameEntry.place(relx=.5, rely=.3, anchor="center")
         self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.lastNameEntry = ctk.CTkEntry(master=self.createAccountFrame, 
@@ -114,7 +114,7 @@ class ManagerFrame():
                         height=52, 
                         placeholder_text="Last Name", 
                         font=("Roboto", 14))
-        self.lastNameEntry.pack(pady=20)
+        self.lastNameEntry.place(relx=.5, rely=.4, anchor="center")
         self.lastNameEntry.bind('<Return>', self.__createAccount)
 
         self.typeValue = ctk.StringVar(master=self.createAccountFrame)
@@ -130,14 +130,14 @@ class ManagerFrame():
                                     width=500, 
                                     height=52)
 
-        self.staffType.pack(pady=20)
+        self.staffType.place(relx=.5, rely=.5, anchor="center")
 
         self.idEntry = ctk.CTkEntry(master=self.createAccountFrame, 
                         width=500, 
                         height=52, 
                         placeholder_text="Employee ID", 
                         font=("Roboto", 14))
-        self.idEntry.pack(pady=20)
+        self.idEntry.place(relx=.5, rely=.6, anchor="center")
         self.idEntry.bind('<Return>', self.__createAccount)
 
 
@@ -147,7 +147,7 @@ class ManagerFrame():
                         placeholder_text="Password",
                         show="*",
                         font=("Roboto", 14))
-        self.pwdEntry.pack(pady=20)
+        self.pwdEntry.place(relx=.5, rely=.7, anchor="center")
         self.pwdEntry.bind('<Return>', self.__createAccount)
 
         self.createButton = ctk.CTkButton(master=self.createAccountFrame, 
@@ -159,7 +159,7 @@ class ManagerFrame():
                         hover_color="#9f54fb",
                         command=self.__createAccount)
 
-        self.createButton.pack(pady=20)        
+        self.createButton.place(relx=.5, rely=.8, anchor="center")
 
         # VIEW EMPLOYEES                
         self.viewEmployeesLabel = ctk.CTkLabel(master=self.viewEmployeesFrame, text="View Staff Members", font=("Roboto", 32, "bold"))
@@ -285,10 +285,10 @@ class ManagerFrame():
         self.cinemaLabel.place(relx=.5, rely=.35, anchor="center")
 
         self.buttonsFrame.pack(fill="both", padx=20)
-        self.addCityButton.grid(row=1, column=0, sticky="news", padx=(160, 25), pady=25)
-        self.addCinemaButton.grid(row=1, column=1, sticky="news", padx=(25, 25), pady=25)
-        self.viewEmployeesButton.grid(row=1, column=2, sticky="news", padx=(25, 25), pady=25)
-        self.createEmployeeAccount.grid(row=1, column=3, sticky="news", padx=(25, 160), pady=25)
+        self.addCityButton.pack(side="left", padx=(15, 15))
+        self.addCinemaButton.pack(side="left", padx=15)
+        self.viewEmployeesButton.pack(side="left", padx=15)
+        self.createEmployeeAccount.pack(side="left", padx=15)
 
     def __createAccount(self, event=None):
 
