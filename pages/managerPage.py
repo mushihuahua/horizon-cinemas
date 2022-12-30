@@ -150,7 +150,7 @@ class ManagerFrame():
         self.cinemaLabel.place(relx=.5, rely=.35, anchor="center")
 
         self.buttonsFrame.pack(fill="both", padx=20)
-        self.addCityButton.pack(side="left", padx=(150, 15))
+        self.addCityButton.pack(side="left", padx=(15, 15))
         self.addCinemaButton.pack(side="left", padx=15)
         self.viewEmployeesButton.pack(side="left", padx=15)
         self.createEmployeeAccount.pack(side="left", padx=15)

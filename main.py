@@ -511,8 +511,8 @@ class LoginFrame():
                     global mainView, adminView, managerView, accountView, menu
                     # MenuFrame is the navbar
                     menu = MenuFrame(app)
-                    mainView = MainFrame(app)
-                    adminView = AdminFrame(app)
+                    mainView = MainFrame(app, loggedInUser)
+                    adminView = AdminFrame(app, loggedInUser)
                     managerView = ManagerFrame(app, loggedInUser)
                     accountView = AccountFrame(app)
                     
@@ -628,9 +628,9 @@ class MenuFrame():
         # Put them on the GUI Pack inline and append them to a buttons array
 
         self.bookingStaffButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.adminButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.managerButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.accountButton.pack(side=tk.LEFT, padx=15, pady=10)
+        self.adminButton.pack(side=tk.LEFT, padx=15)
+        self.managerButton.pack(side=tk.LEFT, padx=15)
+        self.accountButton.pack(side=tk.LEFT, padx=15)
 
         self.logoutButton.pack(side=tk.RIGHT, padx=20, pady=10)
         container.buttons.append(self.bookingStaffButton)
