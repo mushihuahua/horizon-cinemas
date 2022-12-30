@@ -563,8 +563,7 @@ class MenuFrame():
 
         self.container = container
 
-        self.menuFrame = ctk.CTkFrame(master=container,
-
+        self.menuFrame = ctk.CTkFrame(master=container, 
                                 width=app.width, 
                                 border_width=1, 
                                 border_color="black")
@@ -632,7 +631,7 @@ class MenuFrame():
         self.managerButton.pack(side=tk.LEFT, padx=15)
         self.accountButton.pack(side=tk.LEFT, padx=15)
 
-        self.logoutButton.pack(side=tk.RIGHT, padx=20, pady=10)
+        self.logoutButton.pack(side=tk.RIGHT, padx=20)
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
@@ -655,7 +654,7 @@ class MenuFrame():
 if(__name__ == "__main__"):
     # print(client.list_database_names())
     app = App()
-    
+
     loginView = LoginFrame(app)
 
     loginView.loginFrame.pack(pady=20, padx=60, fill="both", expand=True)

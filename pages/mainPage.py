@@ -156,10 +156,6 @@ class MainFrame():
                             corner_radius=4)                                     
         self.totalPriceLabel = ctk.CTkLabel(master=self.formFrame, text="Total Price:", font=("Roboto", 15)) 
         self.totalPrice = ctk.CTkLabel(master=self.formFrame, text="£0", font=("Roboto", 18)) 
-
-        self.availabilityLabel = ctk.CTkLabel(master=self.formFrame, text="Availability:", font=("Roboto", 15)) 
-        self.availability = ctk.CTkLabel(master=self.formFrame, text=" ", font=("Roboto", 18)) 
-
         self.makeBookingButton = ctk.CTkButton(master=self.formFrame, 
                                     text="Make Booking",
                                     width=200,
