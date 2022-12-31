@@ -2,10 +2,9 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
 from tkcalendar import *
-
 # Booking View
 class MainFrame():
-    def __init__(self, container):
+    def __init__(self, container, loggedInUser):
 
         from datetime import datetime
         date = datetime.today().strftime('%Y-%m-%d')
@@ -13,7 +12,10 @@ class MainFrame():
         month = int(date[5:7])
         day = int(date[8:])
 
+        self.loggedInUser = loggedInUser
         self.frames = []
+        self.error = None
+        self.successMessage = None
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=10)
         self.formFrame = ctk.CTkFrame(master=self.frame, corner_radius=10)
@@ -173,29 +175,29 @@ class MainFrame():
         self.listingID = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing ID: ", font=("", 18))
         self.listingID.pack(padx=20, pady=10)
 
-        self.filmName = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Name: ", font=("", 18))
-        self.filmName.pack(padx=20, pady=10)
+        self.filmNameLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Name: ", font=("", 18))
+        self.filmNameLabel.pack(padx=20, pady=10)
         
-        self.filmDate = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Date: ", font=("", 18))
-        self.filmDate.pack(padx=20, pady=10)
+        self.filmDateLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Date: ", font=("", 18))
+        self.filmDateLabel.pack(padx=20, pady=10)
 
-        self.filmDescription = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Description: ", font=("", 18))
-        self.filmDescription.pack(padx=20, pady=10)
+        self.filmDescriptionLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Description: ", font=("", 18))
+        self.filmDescriptionLabel.pack(padx=20, pady=10)
 
-        self.filmGenre = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Genre: ", font=("", 18))
-        self.filmGenre.pack(padx=20, pady=10)
+        self.filmGenreLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Genre: ", font=("", 18))
+        self.filmGenreLabel.pack(padx=20, pady=10)
 
-        self.filmAge = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Age: ", font=("", 18))
-        self.filmAge.pack(padx=20, pady=10)
+        self.filmAgeLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Age: ", font=("", 18))
+        self.filmAgeLabel.pack(padx=20, pady=10)
 
-        self.filmRating = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Rating: ", font=("", 18))
-        self.filmRating.pack(padx=20, pady=10)
+        self.filmRatingLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Rating: ", font=("", 18))
+        self.filmRatingLabel.pack(padx=20, pady=10)
 
-        self.actorDetails = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
-        self.actorDetails.pack(padx=20, pady=10)
+        self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
+        self.actorDetailsLabel.pack(padx=20, pady=10)
 
-        self.actorDetails = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
-        self.actorDetails.pack(padx=20, pady=10, anchor="w")
+        self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
+        self.actorDetailsLabel.pack(padx=20, pady=10, anchor="w")
 
         shows = []
         listing = db.listings.find_one({"_id": None})
@@ -268,7 +270,7 @@ class MainFrame():
         self.filmAge = ctk.CTkEntry(master=self.addListingFrame, 
                 width=250, 
                 height=52, 
-                placeholder_text="Film Age", 
+                placeholder_text="Film Release Year", 
                 font=("Roboto", 14))
         self.filmAge.place(relx=.425, rely=.25, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
@@ -284,12 +286,12 @@ class MainFrame():
         self.filmLengthLabel = ctk.CTkLabel(master=self.addListingFrame, text="Film Length:", font=("Roboto", 14))
         self.filmLengthLabel.place(relx=.37, rely=.325, anchor="center")
 
-        lengthHours = tk.StringVar()
-        self.filmLength1 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=23, textvariable=lengthHours, width=12, font=("Roboto", 16))
+        self.lengthHours = tk.StringVar()
+        self.filmLength1 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=4, textvariable=self.lengthHours, width=12, font=("Roboto", 16))
         self.filmLength1.place(relx=.45, rely=.325, anchor="center")
 
-        lengthMinutes = tk.StringVar()
-        self.filmLength2 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=59, textvariable=lengthMinutes, width=12, font=("Roboto", 16))
+        self.lengthMinutes = tk.StringVar()
+        self.filmLength2 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=59, textvariable=self.lengthMinutes, width=12, font=("Roboto", 16))
         self.filmLength2.place(relx=.55, rely=.325, anchor="center")
 
         self.filmDetails = ctk.CTkEntry(master=self.addListingFrame, 
@@ -314,7 +316,8 @@ class MainFrame():
                         height=52, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command=self.__addListing)
         
         self.addButton.place(relx=.5, rely=.550, anchor="center")
     
@@ -362,6 +365,81 @@ class MainFrame():
                         hover_color="#9f54fb")
         
         self.addShowButton.place(relx=.5, rely=.35, anchor="center")
+
+    def __addListing(self):
+        from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing
+
+        filmName = self.filmName.get()
+        filmGenre = self.filmGenre.get()
+        filmAge = self.filmAge.get()
+        filmRating = self.filmRating.get()
+        filmDetails = self.filmDetails.get()
+        cast = self.actorDetails.get()
+
+        lengthHours = self.lengthHours.get()
+        lengthMinutes = self.lengthMinutes.get()
+        filmLength = f"{lengthHours}h {lengthMinutes}m"
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+
+        if(len(filmName) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Name is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(filmGenre) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Genre is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        try:
+            filmAge = int(filmAge)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Age should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        if(len(filmRating) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Rating is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(filmDetails) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Details is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(cast) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Cast Details is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+        
+        try:
+            lengthHours = int(lengthHours)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Length (Hours) should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        try:
+            lengthMinutes = int(lengthMinutes)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Length (Minutes) should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        success = False
+        if(self.loggedInUser.__class__.__name__ == "Manager"):
+            listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
+            success = currentCinema.addListing(listing)
+
+        if(success):
+            self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
 
     def switchFrames(self, frame):
 

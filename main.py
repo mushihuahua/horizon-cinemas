@@ -87,7 +87,7 @@ class Report:
         pass
     
 class Cinema:
-    def __init__(self, city, location):
+    def __init__(self, id, city, location):
         self.__city = city
         self.__location = location
         self.__screens = []
@@ -105,7 +105,17 @@ class Cinema:
         pass
 
     def addListing(self, listing): 
-        pass
+        dbListing = {
+            "film_name": listing.filmName,
+            "film_genre": listing.filmGenre,
+            "film_age": listing.filmAge,
+            "film_rating": listing.filmRating,
+            "film_description": listing.filmDescription,
+            "cast": listing.cast,
+            "shows": listing.shows
+        }
+
+        return db.listings.insert_one(dbListing).acknowledged
 
     def removeListing(self, listing):
         pass
@@ -165,28 +175,17 @@ class City:
         pass
 
 class Listing: 
-    def __init__(self,filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
-        self.__filmName = filmName
-        self.__filmDate = filmDate
-        self.__filmDescription = filmDescription
-        self.__actorDetails = actorDetails
-        self.__filmGenre = filmGenre
-        self.__filmAge = filmAge
-        self.__filmRating = filmRating
- 
-    def getListingInformation(self):
-        pass
+    def __init__(self, filmName, filmLength, filmDescription, cast, filmGenre, filmAge, filmRating):
+        self.filmName = filmName
+        self.filmLength = filmLength
+        self.filmDescription = filmDescription
+        self.cast = cast
+        self.filmGenre = filmGenre
+        self.filmAge = filmAge
+        self.filmRating = filmRating
+        self.shows = []
 
-    def changeListingInformation(self):
-        pass
-    
     def getShows(self):
-        pass
-
-    def getFilmName(self):
-        pass
-
-    def getFilmDate(self):
         pass
 
     def addShow(self, show):
@@ -373,7 +372,11 @@ staffTypes = {
 }
 
 loggedInUser = Staff(0, "", 0, "", "")
-
+currentCity = City("Bristol", 6, 7, 8)
+cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
+currentCinema = None
+if(cinema != None):
+    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"))
 
 '''
 test = Staff(1, "hi", "Steve Bannon", "test", "Steve", "Bannon")
@@ -511,7 +514,7 @@ class LoginFrame():
                     global mainView, adminView, managerView, accountView, menu
                     # MenuFrame is the navbar
                     menu = MenuFrame(app)
-                    mainView = MainFrame(app)
+                    mainView = MainFrame(app, loggedInUser)
                     adminView = AdminFrame(app)
                     managerView = ManagerFrame(app, loggedInUser)
                     accountView = AccountFrame(app)
