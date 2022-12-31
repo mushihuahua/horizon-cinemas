@@ -199,13 +199,13 @@ class MainFrame():
         self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
         self.actorDetailsLabel.pack(padx=20, pady=10, anchor="w")
 
-        shows = []
+        self.shows = []
         listing = db.listings.find_one({"_id": None})
         if(listing != None):
-            shows = listing.get("shows")
+            self.shows = listing.get("shows")
 
         selected = ctk.StringVar()
-        for i in range(len(shows)):
+        for i in range(len(self.shows)):
             r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i} - Date Time", value=f"show{i}", variable=selected)
             r.pack(fill='x', padx=5, pady=5)
 
@@ -433,13 +433,16 @@ class MainFrame():
             return
 
         success = False
-        if(self.loggedInUser.__class__.__name__ == "Manager"):
+        if(self.loggedInUser.__class__.__name__ == "Admin"):
             listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
             success = currentCinema.addListing(listing)
 
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
+        
+            self.listingsList.append(filmName)
+            self.listingComboBox.configure(values=self.listingsList)
 
     def switchFrames(self, frame):
 
