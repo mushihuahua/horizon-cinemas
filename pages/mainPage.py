@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tkinter as tk
 from tkinter import ttk
 from tkcalendar import *
 
@@ -190,7 +191,7 @@ class MainFrame():
         self.filmRating = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Rating: ", font=("", 18))
         self.filmRating.pack(padx=20, pady=10)
 
-        self.actorDetails = ctk.CTkLabel(master=self.viewListingsFrame, text="Actor Details: ", font=("", 18))
+        self.actorDetails = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
         self.actorDetails.pack(padx=20, pady=10)
 
         self.actorDetails = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
@@ -280,14 +281,16 @@ class MainFrame():
         self.filmRating.place(relx=.575, rely=.25, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
-        self.filmDate = DateEntry(master=self.addListingFrame, 
-                width=25, 
-                height=75, 
-                font=("Roboto", 14))
+        self.filmLengthLabel = ctk.CTkLabel(master=self.addListingFrame, text="Film Length:", font=("Roboto", 14))
+        self.filmLengthLabel.place(relx=.37, rely=.325, anchor="center")
 
-        self.filmDate.delete(0, "end")
-        self.filmDate.insert(0, 'Film Date')
-        self.filmDate.place(relx=.5, rely=.325, anchor="center")
+        lengthHours = tk.StringVar()
+        self.filmLength1 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=23, textvariable=lengthHours, width=12, font=("Roboto", 16))
+        self.filmLength1.place(relx=.45, rely=.325, anchor="center")
+
+        lengthMinutes = tk.StringVar()
+        self.filmLength2 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=59, textvariable=lengthMinutes, width=12, font=("Roboto", 16))
+        self.filmLength2.place(relx=.55, rely=.325, anchor="center")
 
         self.filmDetails = ctk.CTkEntry(master=self.addListingFrame, 
                 width=500, 
@@ -300,7 +303,7 @@ class MainFrame():
         self.actorDetails = ctk.CTkEntry(master=self.addListingFrame, 
                 width=500, 
                 height=52, 
-                placeholder_text="Actor Details", 
+                placeholder_text="Cast", 
                 font=("Roboto", 14))
         self.actorDetails.place(relx=.5, rely=.475, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
@@ -339,13 +342,16 @@ class MainFrame():
         self.showDate.place(relx=.5, rely=.15, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
-        self.showTime = ctk.CTkEntry(master=self.addShowFrame, 
-                width=250, 
-                height=52, 
-                placeholder_text="Show Time (1-24)", 
-                font=("Roboto", 14))
-        self.showTime.place(relx=.5, rely=.25, anchor="center")
-        # self.firstNameEntry.bind('<Return>', self.__createAccount)
+        self.showTimeLabel = ctk.CTkLabel(master=self.addShowFrame, text="Show Time:", font=("Roboto", 14))
+        self.showTimeLabel.place(relx=.37, rely=.25, anchor="center")
+
+        timeHours = tk.StringVar()
+        self.showTime1 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=23, textvariable=timeHours, width=12, font=("Roboto", 16))
+        self.showTime1.place(relx=.45, rely=.25, anchor="center")
+
+        timeMinutes = tk.StringVar()
+        self.showTime2 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=59, textvariable=timeMinutes, width=12, font=("Roboto", 16))
+        self.showTime2.place(relx=.55, rely=.25, anchor="center")
 
         self.addShowButton = ctk.CTkButton(master=self.addShowFrame, 
                         text="Add Show", 
