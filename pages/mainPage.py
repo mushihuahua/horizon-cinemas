@@ -354,7 +354,7 @@ class MainFrame():
         self.addShowButton.place(relx=.5, rely=.35, anchor="center")
 
     def __addListing(self):
-        from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing
+        from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
 
         filmName = self.filmName.get()
         filmGenre = self.filmGenre.get()
@@ -420,7 +420,7 @@ class MainFrame():
             return
 
         success = False
-        if(self.loggedInUser.__class__.__name__ == "Admin"):
+        if(self.loggedInUser.__class__.__name__ == "Admin" or self.loggedInUser.__class__.__name__ == "Manager"):
             listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
             success = currentCinema.addListing(listing)
 
@@ -428,6 +428,7 @@ class MainFrame():
             self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
         
+            self.listings = list(db.listings.find())
             self.listingsList.append(filmName)
             self.listingComboBox.configure(values=self.listingsList)
 
