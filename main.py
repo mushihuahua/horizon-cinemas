@@ -117,8 +117,9 @@ class Cinema:
 
         return db.listings.insert_one(dbListing).acknowledged
 
-    def removeListing(self, listing):
-        pass
+    def removeListing(self, listingID):
+
+        return db.listings.delete_one({"_id": listingID}).acknowledged
 
     def hireStaffMember(self, staffMember):
         pass

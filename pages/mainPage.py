@@ -16,6 +16,7 @@ class MainFrame():
         self.frames = []
         self.error = None
         self.successMessage = None
+        self.selectedListingID = None
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=10)
         self.formFrame = ctk.CTkFrame(master=self.frame, corner_radius=10)
@@ -163,22 +164,21 @@ class MainFrame():
         self.viewListingsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="View Listings", font=("Roboto", 32, "bold"))
         self.viewListingsLabel.pack(pady=40, padx=30)
         
-        self.listings = db.listings.find()
+        self.listings = list(db.listings.find())
         self.listingsList = [listing.get("film_name") for listing in self.listings]
+
+        self.selectedListing = ctk.StringVar()
 
         if(len(self.listingsList) == 0):
             self.listingsList = ["Empty"]
 
-        self.listingComboBox = ctk.CTkComboBox(master=self.viewListingsFrame, font=("", 15), values=self.listingsList, height=40, width=350)
+        self.listingComboBox = ctk.CTkComboBox(master=self.viewListingsFrame, font=("", 15), values=self.listingsList, variable=self.selectedListing, command=self.__viewListings, height=40, width=350)
         self.listingComboBox.pack(padx=20, pady=20)
-
-        self.listingID = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing ID: ", font=("", 18))
-        self.listingID.pack(padx=20, pady=10)
 
         self.filmNameLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Name: ", font=("", 18))
         self.filmNameLabel.pack(padx=20, pady=10)
         
-        self.filmDateLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Date: ", font=("", 18))
+        self.filmDateLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Release Date: ", font=("", 18))
         self.filmDateLabel.pack(padx=20, pady=10)
 
         self.filmDescriptionLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Description: ", font=("", 18))
@@ -187,27 +187,14 @@ class MainFrame():
         self.filmGenreLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Genre: ", font=("", 18))
         self.filmGenreLabel.pack(padx=20, pady=10)
 
-        self.filmAgeLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Age: ", font=("", 18))
-        self.filmAgeLabel.pack(padx=20, pady=10)
-
         self.filmRatingLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Rating: ", font=("", 18))
         self.filmRatingLabel.pack(padx=20, pady=10)
 
         self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
         self.actorDetailsLabel.pack(padx=20, pady=10)
 
-        self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
-        self.actorDetailsLabel.pack(padx=20, pady=10, anchor="w")
-
-        self.shows = []
-        listing = db.listings.find_one({"_id": None})
-        if(listing != None):
-            self.shows = listing.get("shows")
-
-        selected = ctk.StringVar()
-        for i in range(len(self.shows)):
-            r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i} - Date Time", value=f"show{i}", variable=selected)
-            r.pack(fill='x', padx=5, pady=5)
+        self.showsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
+        self.showsLabel.pack(padx=20, pady=10, anchor="w")
 
         # View Bookings
         self.viewBookingsLabel = ctk.CTkLabel(master=self.viewBookingsFrame, text="View Bookings", font=("Roboto", 32, "bold"))
@@ -248,8 +235,8 @@ class MainFrame():
         self.cancelButton.pack(pady=10)
 
         # Add Listing
-        self.addLabel = ctk.CTkLabel(master=self.addListingFrame, text="Listing Form", font=("Roboto", 32, "bold"))
-        self.addLabel.place(relx=.5, rely=.05, anchor="center")
+        self.listingFormLabel = ctk.CTkLabel(master=self.addListingFrame, text="Listing Form", font=("Roboto", 32, "bold"))
+        self.listingFormLabel.place(relx=.5, rely=.05, anchor="center")
 
         self.filmName = ctk.CTkEntry(master=self.addListingFrame, 
                 width=250, 
@@ -444,6 +431,64 @@ class MainFrame():
             self.listingsList.append(filmName)
             self.listingComboBox.configure(values=self.listingsList)
 
+    def __viewListings(self, choice):
+        
+        from main import db
+
+        selectedListing = self.listings[self.listingsList.index(self.selectedListing.get())]
+        self.filmNameLabel.configure(text=("Film Name: " + selectedListing.get("film_name")))
+        self.filmDateLabel.configure(text=("Film Release Date: " + str(selectedListing.get("film_age"))))
+        self.filmDescriptionLabel.configure(text=("Film Description: " + selectedListing.get("film_description")))
+        self.filmGenreLabel.configure(text=("Film Genre: " + selectedListing.get("film_genre")))
+        self.filmRatingLabel.configure(text=("Film Rating: " + selectedListing.get("film_rating")))
+        self.actorDetailsLabel.configure(text=("Cast: " + selectedListing.get("cast")))
+
+        self.selectedListingID = selectedListing.get("_id")
+
+        self.shows = []
+        self.showsButtons = []
+        listing = db.listings.find_one({"_id": self.selectedListingID})
+        if(listing != None):
+            self.shows = listing.get("shows")
+
+        for i in self.showsButtons:
+            i.pack_forget()
+
+        self.selectedShow = ctk.StringVar()
+        for i in range(len(self.shows)):
+            r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i+1} - Date Time", value=f"show{i+1}", variable=self.selectedShow)
+            self.showsButtons.append(r)
+            r.pack(fill='x', padx=5, pady=5)
+
+
+    def __removeListing(self):
+        from main import db, SUCCESS_COLOUR, ERROR_COLOUR, currentCinema
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+
+        listingFound = db.listings.find_one({"_id": self.selectedListingID})
+
+        if(listingFound == None):
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing does not exist", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        success = currentCinema.removeListing(self.selectedListingID)
+        if(success):
+
+            selectedListing = self.listings[self.listingsList.index(self.selectedListing.get())]
+            self.listings.remove(selectedListing)
+            self.listingsList.remove(listingFound.get("film_name"))
+            self.listingComboBox.configure(values=self.listingsList)
+
+            self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+
+
     def switchFrames(self, frame):
 
         self.buttonsFrame.pack_forget()
@@ -454,53 +499,55 @@ class MainFrame():
         
         # Pack the view frame switched to
         frame.pack(pady=20, padx=20, fill="both", expand=True)
-        if(frame == self.viewListingsFrame):
-            self.bookingButton.configure(text="Add Listing", command=lambda: self.switchFrames(self.addListingFrame))
-            self.viewListingsButton.configure(text="Update Listing", command=lambda: self.switchFrames(self.addListingFrame))
-            self.viewBookingsButton.configure(text="Remove Listing", command=None)
+        employeeType = self.loggedInUser.__class__.__name__
+        if(employeeType == "Admin" or employeeType == "Manager"):
+            if(frame == self.viewListingsFrame):
+                self.bookingButton.configure(text="Add Listing", command=lambda: self.switchFrames(self.addListingFrame))
+                self.viewListingsButton.configure(text="Update Listing", command=lambda: self.switchFrames(self.addListingFrame))
+                self.viewBookingsButton.configure(text="Remove Listing", command=self.__removeListing)
 
-            self.addShowButton = ctk.CTkButton(master=self.buttonsFrame, 
-                                        text="Add Show", 
-                                        width=150,
-                                        height=75,
-                                        font=("", 18, "bold"), 
-                                        corner_radius=7,
-                                        fg_color="#9f54fb",
-                                        hover_color="#a722fa",
-                                        command=lambda: self.switchFrames(self.addShowFrame))
+                self.addShowButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                            text="Add Show", 
+                                            width=150,
+                                            height=75,
+                                            font=("", 18, "bold"), 
+                                            corner_radius=7,
+                                            fg_color="#9f54fb",
+                                            hover_color="#a722fa",
+                                            command=lambda: self.switchFrames(self.addShowFrame))
 
-            self.addShowButton.pack(side="left", padx=15)
+                self.addShowButton.pack(side="left", padx=15)
 
-            self.removeShowButton = ctk.CTkButton(master=self.buttonsFrame, 
-                                        text="Remove Show", 
-                                        width=150,
-                                        height=75,
-                                        font=("", 18, "bold"), 
-                                        corner_radius=7,
-                                        fg_color="#9f54fb",
-                                        hover_color="#a722fa",
-                                        command=None)
+                self.removeShowButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                            text="Remove Show", 
+                                            width=150,
+                                            height=75,
+                                            font=("", 18, "bold"), 
+                                            corner_radius=7,
+                                            fg_color="#9f54fb",
+                                            hover_color="#a722fa",
+                                            command=None)
 
-            self.removeShowButton.pack(side="left", padx=15)
+                self.removeShowButton.pack(side="left", padx=15)
 
-            self.backButton = ctk.CTkButton(master=self.buttonsFrame, 
-                                        text="Back", 
-                                        width=150,
-                                        height=75,
-                                        font=("", 18, "bold"), 
-                                        corner_radius=7,
-                                        fg_color="#9f54fb",
-                                        hover_color="#a722fa",
-                                        command=self.back)
+                self.backButton = ctk.CTkButton(master=self.buttonsFrame, 
+                                            text="Back", 
+                                            width=150,
+                                            height=75,
+                                            font=("", 18, "bold"), 
+                                            corner_radius=7,
+                                            fg_color="#9f54fb",
+                                            hover_color="#a722fa",
+                                            command=self.back)
 
-            self.backButton.pack(side="left", padx=15)
+                self.backButton.pack(side="left", padx=15)
 
-        if(frame == self.addListingFrame or frame == self.addShowFrame):
-            self.viewBookingsButton.configure(text="", command=None, width=0)
-            self.viewListingsButton.configure(text="", command=None, width=0)
-            if(frame != self.addShowFrame):
-                self.addShowButton.configure(text="", command=None, width=0)
-            self.removeShowButton.configure(text="", command=None, width=0)
+            if(frame == self.addListingFrame or frame == self.addShowFrame):
+                self.viewBookingsButton.configure(text="", command=None, width=0)
+                self.viewListingsButton.configure(text="", command=None, width=0)
+                if(frame != self.addShowFrame):
+                    self.addShowButton.configure(text="", command=None, width=0)
+                self.removeShowButton.configure(text="", command=None, width=0)
 
         self.buttonsFrame.pack(fill="both", padx=20)
 
