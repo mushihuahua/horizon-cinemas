@@ -1,9 +1,8 @@
 import customtkinter as ctk
 import tkinter as tk
 from werkzeug.security import generate_password_hash, check_password_hash
-from main import currentCinema, db
+from main import currentCinema, db, cityContainer
 from bson.objectid import ObjectId
-
 
 
 ERROR_COLOUR="#e23636"
@@ -196,22 +195,38 @@ class ManagerFrame():
 
         # ADD CITY 
         self.addCityLabel = ctk.CTkLabel(master=self.addCityFrame, text="Add City", font=("Roboto", 32, "bold"))
-        self.addCityLabel.pack(pady=(150, 25))
+        self.addCityLabel.place(relx=.5, rely=.1, anchor="center")
 
-        self.cityName = ctk.CTkEntry(master=self.addCityFrame, 
+        self.cityNameEntry = ctk.CTkEntry(master=self.addCityFrame, 
                         width=500, 
                         height=52, 
                         placeholder_text="City Name", 
                         font=("Roboto", 14))
-        self.cityName.pack(pady=20)
+        self.cityNameEntry.place(relx=.5, rely=.25, anchor="center")
         # self.idEntry.bind('<Return>', self.__createAccount)
 
-        self.cityLocation = ctk.CTkEntry(master=self.addCityFrame, 
-                        width=500, 
+        self.cityMorningPrice = ctk.CTkEntry(master=self.addCityFrame, 
+                        width=150, 
                         height=52, 
-                        placeholder_text="City Location", 
+                        placeholder_text="City Morning Price", 
                         font=("Roboto", 14))
-        self.cityLocation.pack(pady=20)
+        self.cityMorningPrice.place(relx=.35, rely=.4, anchor="center")
+        # self.idEntry.bind('<Return>', self.__createAccount)
+
+        self.cityAfternoonPrice = ctk.CTkEntry(master=self.addCityFrame, 
+                        width=150, 
+                        height=52, 
+                        placeholder_text="City Afternoon Price", 
+                        font=("Roboto", 14))
+        self.cityAfternoonPrice.place(relx=.5, rely=.4, anchor="center")
+        # self.idEntry.bind('<Return>', self.__createAccount)
+
+        self.cityEveningPrice = ctk.CTkEntry(master=self.addCityFrame, 
+                        width=150, 
+                        height=52, 
+                        placeholder_text="City Evening Price", 
+                        font=("Roboto", 14))
+        self.cityEveningPrice.place(relx=.65, rely=.4, anchor="center")
         # self.idEntry.bind('<Return>', self.__createAccount)
 
         self.addCity = ctk.CTkButton(master=self.addCityFrame, 
@@ -220,9 +235,10 @@ class ManagerFrame():
                         height=52, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command = self.__addCity)
 
-        self.addCity.pack(pady=20)        
+        self.addCity.place(relx=.5, rely=.55, anchor="center")       
 
 
         # ADD CINEMA
@@ -290,6 +306,53 @@ class ManagerFrame():
         self.viewEmployeesButton.pack(side="left", padx=15)
         self.createEmployeeAccount.pack(side="left", padx=15)
 
+    def __addCity(self):
+        cityNameEntry = self.cityNameEntry.get()
+        morningPrice = self.cityMorningPrice.get()
+        afternoonPrice = self.cityAfternoonPrice.get()
+        eveningPrice = self.cityEveningPrice.get()
+
+        if(self.error != None):
+            self.error.pack_forget()
+        
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+        
+        if(len(cityNameEntry) <= 0):
+            self.error = ctk.CTkLabel(master=self.addCityFrame, text="Invalid city name", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        try:
+            morningPrice = int(morningPrice)
+            afternoonPrice = int(afternoonPrice)
+            eveningPrice = int(eveningPrice)
+
+        except ValueError:
+            if(self.error != None):
+                self.error.pack_forget()
+            self.error = ctk.CTkLabel(master=self.addCityFrame, text="Prices should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        success = False
+        if(self.loggedInUser.__class__.__name__ == "Manager"):
+            success = cityContainer.addCity(cityNameEntry, morningPrice, afternoonPrice, eveningPrice)
+            
+        if(success):
+            self.successMessage = ctk.CTkLabel(master=self.addCityFrame, text="City added successfully", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+
+            self.cityNameEntry.delete(0, "end")
+            self.cityMorningPrice.delete(0, "end")
+            self.cityAfternoonPrice.delete(0, "end")
+            self.cityEveningPrice.delete(0, "end")
+        
+        else:
+            self.error = ctk.CTkLabel(master=self.addCityFrame, text="Error occured, city could not be added", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+
+     
     def __createAccount(self, event=None):
 
         firstName = self.firstNameEntry.get()
@@ -341,7 +404,7 @@ class ManagerFrame():
 
             success = False
             if(self.loggedInUser.__class__.__name__ == "Manager"):
-                success = self.loggedInUser.createNewEmployee(firstName, lastName, id, generate_password_hash(pwd), empType)
+                success = currentCinema.createNewEmployee(firstName, lastName, id, generate_password_hash(pwd), empType)
 
             if(success):
                 self.successMessage = ctk.CTkLabel(master=self.createAccountFrame, text="Employee account created successfully", text_color=SUCCESS_COLOUR, font=("Roboto", 18))

@@ -57,18 +57,6 @@ class Manager(Admin):
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
-        newEmployee = {
-            "_id": newEmployeeID,
-            "password_hash": newPasswordHash,
-            "first_name": newFirstName,
-            "last_name": newLastName,
-            "type": newType,
-            "cinema": currentCinema.getID()
-        }
-
-        return db.staff.insert_one(newEmployee).acknowledged
-
 class Report:
     def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
@@ -107,8 +95,17 @@ class Cinema:
     def removeListing(self, listing):
         pass
 
-    def hireStaffMember(self, staffMember):
-        pass
+    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
+        newEmployee = {
+            "_id": newEmployeeID,
+            "password_hash": newPasswordHash,
+            "first_name": newFirstName,
+            "last_name": newLastName,
+            "type": newType,
+            "cinema": currentCinema.getID()
+        }
+
+        return db.staff.insert_one(newEmployee).acknowledged
 
     def removeStaffMember(self, staffMember):
         pass
@@ -131,9 +128,15 @@ class CityContainer:
         for city in db.cities.find():
             self.__cities.append(City(city.get("name"), city.get("morning_price"), city.get("afternoon_price"), city.get("evening_price")))
 
-    def addCity(self, city):
-        pass
-    
+    def addCity(self, cityName, morningPrice, afternoonPrice, eveningPrice):
+        newCity = {
+            "name" : cityName, 
+            "morning_price" : morningPrice,
+            "afternoon_price" : afternoonPrice,
+            "evening_price" : eveningPrice
+        }
+        return db.cities.insert_one(newCity).acknowledged
+
     def removeCity(self, city):
         pass
 
@@ -380,6 +383,7 @@ staffTypes = {
     "Manager": Manager
 }
 
+cityContainer = CityContainer()
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
 cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
@@ -648,3 +652,4 @@ if(__name__ == "__main__"):
     # mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
 
     app.mainloop()
+
