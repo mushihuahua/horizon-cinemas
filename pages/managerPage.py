@@ -16,6 +16,7 @@ class ManagerFrame():
         self.frames = []
         self.error = None
         self.successMessage = None
+        self.selectedEmployeeId = None
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=20)
 
@@ -164,7 +165,7 @@ class ManagerFrame():
         self.viewEmployeesLabel = ctk.CTkLabel(master=self.viewEmployeesFrame, text="View Staff Members", font=("Roboto", 32, "bold"))
         self.viewEmployeesLabel.pack(pady=40, padx=30)
 
-        self.employees = db.staff.find()
+        self.employees = list(db.staff.find())
         self.employeeList = [(member.get("first_name") + " " + member.get("last_name") + " - " + str(member.get("_id"))) for member in self.employees]
 
         self.employeeComboBox = ctk.CTkComboBox(master=self.viewEmployeesFrame, font=("", 15), values=self.employeeList, command=self.__employeeChooser, height=40, width=350)
@@ -189,7 +190,8 @@ class ManagerFrame():
                         height=60, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command = self.__removeEmployee)
 
         self.removeButton.pack(pady=20) 
 
@@ -440,7 +442,7 @@ class ManagerFrame():
         # Pack the view frame switched to
         frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-        self.buttonsFrame.pack(fill="both", padx=20)
+        self.buttonsFrame.pack(fill="both", padx=20)     
 
     def __employeeChooser(self, choice):
 
@@ -449,7 +451,9 @@ class ManagerFrame():
         for employee in db.staff.find():
             if(str(employee["_id"]) == choice.split(" - ")[1]):
                 selectedEmployee = employee
-
+                self.selectedEmployeeId = employee.get("_id")
+                
+            
         if(selectedEmployee != None):
             self.employeeIDLabel.configure(text=("Employee ID: " + str(selectedEmployee.get("_id"))))
             self.employeeNameLabel.configure(text=("Employee Name: " + str(selectedEmployee.get("first_name")) + " " + str(selectedEmployee.get("last_name"))))
@@ -457,4 +461,33 @@ class ManagerFrame():
             cinema = db.cinemas.find_one({"_id": selectedEmployee.get("cinema")})
             if(cinema != None):
                 self.employeeCinemaLabel.configure(text=("Employee Cinema: " + str(cinema.get("location"))))
+
+    def __removeEmployee(self):
+        
+        if(self.error != None):
+            self.error.pack_forget()
+        
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+            
+        selectedEmployeeSel = db.staff.find_one({"_id": self.selectedEmployeeId})
+        
+        if(selectedEmployeeSel == None):
+            self.error = ctk.CTkLabel(master= self.viewEmployeesFrame, text="Staff member does not exist", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+        
+
+        success = currentCinema.removeStaffMember(self.selectedEmployeeId)
+        
+        if(success):
+            self.employeeList.remove(selectedEmployeeSel.get("first_name") + " " + selectedEmployeeSel.get("last_name") + " - " + str(selectedEmployeeSel.get("_id")))
+            self.employeeComboBox.configure(values=self.employeeList)
+
+            self.successMessage = ctk.CTkLabel(master=self.viewEmployeesFrame, text="Staff Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+        
+        
+        
+
 

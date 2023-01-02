@@ -107,8 +107,9 @@ class Cinema:
 
         return db.staff.insert_one(newEmployee).acknowledged
 
-    def removeStaffMember(self, staffMember):
-        pass
+    def removeStaffMember(self, remEmployeeID):
+        return db.staff.delete_one({"_id": remEmployeeID}).acknowledged
+
 
     def addScreen(self, screen):
         pass
