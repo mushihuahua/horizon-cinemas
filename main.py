@@ -57,18 +57,6 @@ class Manager(Admin):
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
-    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
-        newEmployee = {
-            "_id": newEmployeeID,
-            "password_hash": newPasswordHash,
-            "first_name": newFirstName,
-            "last_name": newLastName,
-            "type": newType,
-            "cinema": currentCinema.getID()
-        }
-
-        return db.staff.insert_one(newEmployee).acknowledged
-
 class Report:
     def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
@@ -80,17 +68,15 @@ class Report:
         pass
     
 class Cinema:
-    def __init__(self, id, city, location):
+    def __init__(self, id, city, location, numOfScreens=0, screens=[]):
         self.__id = id
         self.__city = city
         self.__location = location
-        self.__screens = []
+        self.__numOfScreens = numOfScreens
+        self.__screens = screens
         self.__listings = []
         self.__bookings = []
         self.__staffMembers = []
-
-    def getID(self):
-        return self.__id
         
     def getListings(self):
         pass
@@ -107,11 +93,21 @@ class Cinema:
     def removeListing(self, listing):
         pass
 
-    def hireStaffMember(self, staffMember):
-        pass
+    def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
+        newEmployee = {
+            "_id": newEmployeeID,
+            "password_hash": newPasswordHash,
+            "first_name": newFirstName,
+            "last_name": newLastName,
+            "type": newType,
+            "cinema": currentCinema.getID()
+        }
 
-    def removeStaffMember(self, staffMember):
-        pass
+        return db.staff.insert_one(newEmployee).acknowledged
+
+    def removeStaffMember(self, remEmployeeID):
+        return db.staff.delete_one({"_id": remEmployeeID}).acknowledged
+
 
     def addScreen(self, screen):
         pass
@@ -124,16 +120,31 @@ class Cinema:
 
     def getLocation(self):
         return self.__location
-    
+
+    def getNumOfScreens(self):
+        return self.__numOfScreens
+
+    def getID(self):
+        return self.__id
+
+    def setID(self, id):
+        self.__id = id
+
 class CityContainer: 
     def __init__(self):
         self.__cities = []
         for city in db.cities.find():
             self.__cities.append(City(city.get("name"), city.get("morning_price"), city.get("afternoon_price"), city.get("evening_price")))
 
-    def addCity(self, city):
-        pass
-    
+    def addCity(self, cityName, morningPrice, afternoonPrice, eveningPrice):
+        newCity = {
+            "name" : cityName, 
+            "morning_price" : morningPrice,
+            "afternoon_price" : afternoonPrice,
+            "evening_price" : eveningPrice
+        }
+        return db.cities.insert_one(newCity).acknowledged
+
     def removeCity(self, city):
         pass
 
@@ -155,7 +166,48 @@ class City:
         pass
 
     def addCinema(self, cinema):
-        pass
+
+        screens = []
+        for i in range(int(cinema.getNumOfScreens())):
+            seats = []
+            numOfVIP = 10
+            numOfLower = int(80*0.3)
+            numOfUpper = 80-numOfLower-numOfVIP
+            for j in range(numOfLower):
+                seats.append(LowerHallSeat(f"L{i+1}{j+1}"))
+            for j in range(numOfUpper):
+                seats.append(UpperGallerySeat(f"U{i+1}{j+1}"))
+            for j in range(numOfVIP):
+                seats.append(VIPSeat(f"V{i+1}{j+1}"))
+
+            dbSeats = []
+            for seat in seats:
+                dbSeat = {
+                    "seat_number": seat.getSeatNumber(),
+                    "available": seat.getAvailability()
+                }
+                dbSeats.append(db.seats.insert_one(dbSeat).inserted_id)
+
+            dbScreen = {
+                "screen_number": i+1,
+                "seating_capacity": numOfLower+numOfUpper+numOfVIP,
+                "seats_available": dbSeats,
+                "seats": dbSeats
+            }
+
+            insertedScreen = db.screens.insert_one(dbScreen).inserted_id
+            screens.append(insertedScreen)
+            
+        dbCinema = {
+            "location": cinema.getLocation(),
+            "screens": screens
+        }
+        insertedCinema = db.cinemas.insert_one(dbCinema).inserted_id
+        cinema.setID(insertedCinema)
+
+        db.cities.find_one_and_update({'name': self.getName().capitalize()}, {'$push': {'cinemas': insertedCinema}})
+
+        return True
 
     def removeCinema(self, cinema):
         pass
@@ -296,12 +348,11 @@ class PaymentSystem:
     pass        
 
 class Screen: 
-    def __init__(self, capacity):
-        self.__capacity = capacity
-        self.__screenNumber = int
-        self.__seatingCapacity = int
-        self.__seatsAvailabe = []
-        self.__seats = []
+    def __init__(self, screenNumber, capacity, seats):
+        self.__screenNumber = screenNumber
+        self.__seatingCapacity = capacity
+        self.__seatsAvailabe = seats
+        self.__seats = seats
         
     def checkVIPAvailability(self):
         pass
@@ -312,14 +363,11 @@ class Screen:
     def checkLowerAvailability(self):
         pass
 
-    def addSeat(self):
-        pass
-
     def getSeats(self):
         return self.__seats
 
     def getAvailableSeats(self):
-        pass
+        return self.__seatsAvailabe
 
 
 class AvailabilityChecker:
@@ -380,12 +428,13 @@ staffTypes = {
     "Manager": Manager
 }
 
+cityContainer = CityContainer()
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
 cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
 currentCinema = None
 if(cinema != None):
-    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"))
+    currentCinema = Cinema(ObjectId("63a22d895cbf5a11ca1f710f"), currentCity, cinema.get("location"))
 
 class App(ctk.CTk):
 
@@ -648,3 +697,4 @@ if(__name__ == "__main__"):
     # mainView.frame.pack(pady=20, padx=60, fill="both", expand=True)
 
     app.mainloop()
+
