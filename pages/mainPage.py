@@ -17,6 +17,7 @@ class MainFrame():
         self.error = None
         self.successMessage = None
         self.selectedListingID = None
+        self.showsButtons = []
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=10)
         self.formFrame = ctk.CTkFrame(master=self.frame, corner_radius=10)
@@ -193,15 +194,6 @@ class MainFrame():
         self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
         self.actorDetailsLabel.pack(padx=20, pady=10)
 
-        self.shows = []
-        listing = db.listings.find_one({"_id": None})
-        if(listing != None):
-            self.shows = listing.get("shows")
-
-        self.selected = ctk.StringVar()
-        for i in range(len(self.shows)):
-            r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i} - Date Time", value=f"show{i}", variable=self.selected)
-            r.pack(fill='x', padx=5, pady=5, side="left")
         self.showsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
         self.showsLabel.pack(padx=20, pady=10, anchor="w")
 
@@ -354,7 +346,7 @@ class MainFrame():
 
         from main import currentCinema
 
-        screens = [f"Screen {i+1}" for i in range(len(currentCinema.getScreens()))]
+        self.selectionScreens = [f"Screen {i+1}" for i in range(len(currentCinema.getScreens()))]
             
         self.screenSelected = ctk.StringVar(value="Select a Screen")
         self.selectScreen = ctk.CTkOptionMenu(master=self.addShowFrame,
@@ -362,7 +354,7 @@ class MainFrame():
                                     button_color="#9f54fb",
                                     button_hover_color="#a722fa", 
                                     variable=self.screenSelected, 
-                                    values=screens,
+                                    values=self.selectionScreens,
                                     width=250, 
                                     height=32)
 
@@ -374,10 +366,70 @@ class MainFrame():
                         height=52, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command= self.__addShow)
         
         self.addShowButton.place(relx=.5, rely=.45, anchor="center")
+    
+    
+    def __addShow(self):
+        from main import Listing, currentCinema, ERROR_COLOUR, SUCCESS_COLOUR, db
+        
+        if(self.error != None):
+            self.error.pack_forget()
 
+        if(self.successMessage != None):
+            self.successMessage.pack_forget() 
+        
+        if(self.selectedListingID == None):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="You have to select a listing first", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return  
+
+        if(self.screenSelected.get() == "Select a Screen"):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Select a screen", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return                 
+        
+        screenIndex = self.selectionScreens.index(self.screenSelected.get())
+        showDate = self.showDate.get_date().strftime("%d-%m-%Y")
+        showTimeHour = self.timeHours.get()
+        showTimeMinutes = self.timeMinutes.get()
+        if(len(showTimeHour) < 10):
+            showTimeHour = f"0{showTimeHour}"
+        if(len(showTimeMinutes) < 10):
+            showTimeMinutes = f"0{showTimeMinutes}"
+        showTime = f"{showTimeHour}:{showTimeMinutes}"
+        showScreen = currentCinema.getScreens()[screenIndex]
+        success = False
+        
+        screen = db.listings.find_one({"_id": self.selectedListingID})
+        numOfShows = 0
+        if(screen != None):
+            if(screen.get("shows") != None):
+                numOfShows = len(screen.get("shows"))
+            
+        if(numOfShows == 4):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="There are already 4 shows associated with this listing", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return                  
+
+        
+        if(self.loggedInUser.__class__.__name__ == "Manager"):
+            success = self.currentListing.addShow(showDate, showTime, showScreen)
+            
+        if(success):
+            self.successMessage = ctk.CTkLabel(master=self.addShowFrame, text="Show added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+            
+            newShow = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {numOfShows+1} - Date Time", value=f"show{numOfShows+1}", variable=self.selectedShow)
+            self.showsButtons.append(newShow)
+            newShow.pack(fill='x', padx=5, pady=5, side="left")
+            
+            return              
+
+        
+        
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
 
@@ -446,7 +498,7 @@ class MainFrame():
 
         success = False
         if(self.loggedInUser.__class__.__name__ == "Admin" or self.loggedInUser.__class__.__name__ == "Manager"):
-            listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
+            listing = Listing(0, filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
             success = currentCinema.addListing(listing)
 
         if(success):
@@ -459,7 +511,7 @@ class MainFrame():
 
     def __viewListings(self, choice):
         
-        from main import db
+        from main import db, Listing
 
         selectedListing = self.listings[self.listingsList.index(self.selectedListing.get())]
         self.filmNameLabel.configure(text=("Film Name: " + selectedListing.get("film_name")))
@@ -470,9 +522,9 @@ class MainFrame():
         self.actorDetailsLabel.configure(text=("Cast: " + selectedListing.get("cast")))
 
         self.selectedListingID = selectedListing.get("_id")
+        self.currentListing = Listing(selectedListing.get("_id"), selectedListing.get("film_name"), selectedListing.get("film_length"), selectedListing.get("film_description"), selectedListing.get("cast"), selectedListing.get("film_genre"), selectedListing.get("film_age"), selectedListing.get("film_rating"), selectedListing.get("shows"))
 
         self.shows = []
-        self.showsButtons = []
         listing = db.listings.find_one({"_id": self.selectedListingID})
         if(listing != None):
             self.shows = listing.get("shows")
@@ -484,7 +536,9 @@ class MainFrame():
         for i in range(len(self.shows)):
             r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i+1} - Date Time", value=f"show{i+1}", variable=self.selectedShow)
             self.showsButtons.append(r)
-            r.pack(fill='x', padx=5, pady=5)
+            r.pack(fill='x', padx=5, pady=5, side="left")
+            
+
 
 
     def __removeListing(self):

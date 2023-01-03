@@ -183,7 +183,8 @@ class City:
         pass
 
 class Listing: 
-    def __init__(self, filmName, filmLength, filmDescription, cast, filmGenre, filmAge, filmRating):
+    def __init__(self, id, filmName, filmLength, filmDescription, cast, filmGenre, filmAge, filmRating, shows=[]):
+        self.id = id
         self.filmName = filmName
         self.filmLength = filmLength
         self.filmDescription = filmDescription
@@ -191,13 +192,23 @@ class Listing:
         self.filmGenre = filmGenre
         self.filmAge = filmAge
         self.filmRating = filmRating
-        self.shows = []
+        self.shows = shows
 
     def getShows(self):
         pass
 
-    def addShow(self, show):
-        pass
+    def addShow(self, showDate, showTime, screenID):
+        newShow = {
+            "show_date" : showDate, 
+            "show_time" : showTime,
+            "screen_number" : screenID 
+        }
+        addShowID = db.shows.insert_one(newShow).inserted_id
+        db.listings.find_one_and_update({"_id": self.id}, {"$push": {"shows": addShowID}})
+
+        return True
+        
+
 
     def removeShow(self, show):
         pass
@@ -379,10 +390,12 @@ staffTypes = {
     "Manager": Manager
 }
 
+
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
 cinema  = db.cinemas.find_one({"_id": ObjectId("63b34317b9cf1c1c47ef12a8")})
 currentCinema = None
+
 if(cinema != None):
     currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"), cinema.get("screens"))
 
