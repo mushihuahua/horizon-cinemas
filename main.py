@@ -87,10 +87,11 @@ class Report:
         pass
     
 class Cinema:
-    def __init__(self, id, city, location):
+    def __init__(self, id, city, location, screens=[]):
+        self.__id = id
         self.__city = city
         self.__location = location
-        self.__screens = []
+        self.__screens = screens
         self.__listings = []
         self.__bookings = []
         self.__staffMembers = []
@@ -136,6 +137,12 @@ class Cinema:
     def getCity(self):
         pass
     
+    def getID(self):
+        return self.__id
+
+    def getScreens(self):
+        return self.__screens    
+
 class CityContainer: 
     def __init__(self):
         self.__cities = []
@@ -374,10 +381,10 @@ staffTypes = {
 
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
-cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
+cinema  = db.cinemas.find_one({"_id": ObjectId("63b34317b9cf1c1c47ef12a8")})
 currentCinema = None
 if(cinema != None):
-    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"))
+    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"), cinema.get("screens"))
 
 '''
 test = Staff(1, "hi", "Steve Bannon", "test", "Steve", "Bannon")

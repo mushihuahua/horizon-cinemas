@@ -193,6 +193,15 @@ class MainFrame():
         self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
         self.actorDetailsLabel.pack(padx=20, pady=10)
 
+        self.shows = []
+        listing = db.listings.find_one({"_id": None})
+        if(listing != None):
+            self.shows = listing.get("shows")
+
+        self.selected = ctk.StringVar()
+        for i in range(len(self.shows)):
+            r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i} - Date Time", value=f"show{i}", variable=self.selected)
+            r.pack(fill='x', padx=5, pady=5, side="left")
         self.showsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
         self.showsLabel.pack(padx=20, pady=10, anchor="w")
 
@@ -243,7 +252,7 @@ class MainFrame():
                 height=52, 
                 placeholder_text="Film Name", 
                 font=("Roboto", 14))
-        self.filmName.place(relx=.425, rely=.15, anchor="center")
+        self.filmName.place(relx=.4, rely=.2, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.filmGenre = ctk.CTkEntry(master=self.addListingFrame, 
@@ -251,7 +260,7 @@ class MainFrame():
                 height=52, 
                 placeholder_text="Film Genre", 
                 font=("Roboto", 14))
-        self.filmGenre.place(relx=.575, rely=.15, anchor="center")
+        self.filmGenre.place(relx=.6, rely=.2, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.filmAge = ctk.CTkEntry(master=self.addListingFrame, 
@@ -259,7 +268,7 @@ class MainFrame():
                 height=52, 
                 placeholder_text="Film Release Year", 
                 font=("Roboto", 14))
-        self.filmAge.place(relx=.425, rely=.25, anchor="center")
+        self.filmAge.place(relx=.4, rely=.3, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.filmRating = ctk.CTkEntry(master=self.addListingFrame, 
@@ -267,34 +276,34 @@ class MainFrame():
                 height=52, 
                 placeholder_text="Film Rating", 
                 font=("Roboto", 14))
-        self.filmRating.place(relx=.575, rely=.25, anchor="center")
+        self.filmRating.place(relx=.6, rely=.3, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.filmLengthLabel = ctk.CTkLabel(master=self.addListingFrame, text="Film Length:", font=("Roboto", 14))
-        self.filmLengthLabel.place(relx=.37, rely=.325, anchor="center")
+        self.filmLengthLabel.place(relx=.35, rely=.375, anchor="center")
 
         self.lengthHours = tk.StringVar()
         self.filmLength1 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=4, textvariable=self.lengthHours, width=12, font=("Roboto", 16))
-        self.filmLength1.place(relx=.45, rely=.325, anchor="center")
+        self.filmLength1.place(relx=.45, rely=.375, anchor="center")
 
         self.lengthMinutes = tk.StringVar()
         self.filmLength2 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=59, textvariable=self.lengthMinutes, width=12, font=("Roboto", 16))
-        self.filmLength2.place(relx=.55, rely=.325, anchor="center")
+        self.filmLength2.place(relx=.6, rely=.375, anchor="center")
 
         self.filmDetails = ctk.CTkEntry(master=self.addListingFrame, 
                 width=500, 
                 height=52, 
                 placeholder_text="Film Details", 
                 font=("Roboto", 14))
-        self.filmDetails.place(relx=.5, rely=.4, anchor="center")
+        self.filmDetails.place(relx=.5, rely=.475, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.actorDetails = ctk.CTkEntry(master=self.addListingFrame, 
                 width=500, 
                 height=52, 
-                placeholder_text="Cast", 
+                placeholder_text="Cast: ", 
                 font=("Roboto", 14))
-        self.actorDetails.place(relx=.5, rely=.475, anchor="center")
+        self.actorDetails.place(relx=.5, rely=.575, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.addButton = ctk.CTkButton(master=self.addListingFrame, 
@@ -306,7 +315,7 @@ class MainFrame():
                         hover_color="#9f54fb",
                         command=self.__addListing)
         
-        self.addButton.place(relx=.5, rely=.550, anchor="center")
+        self.addButton.place(relx=.5, rely=.675, anchor="center")
     
         self.updateButton = ctk.CTkButton(master=self.addListingFrame, 
                         text="Update Listing", 
@@ -316,7 +325,7 @@ class MainFrame():
                         fg_color="#bb86fc",
                         hover_color="#9f54fb")
         
-        self.updateButton.place(relx=.5, rely=.625, anchor="center")
+        self.updateButton.place(relx=.5, rely=.775, anchor="center")
 
 
         # Add Show
@@ -333,15 +342,31 @@ class MainFrame():
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
         self.showTimeLabel = ctk.CTkLabel(master=self.addShowFrame, text="Show Time:", font=("Roboto", 14))
-        self.showTimeLabel.place(relx=.37, rely=.25, anchor="center")
+        self.showTimeLabel.place(relx=.35, rely=.25, anchor="center")
 
-        timeHours = tk.StringVar()
-        self.showTime1 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=23, textvariable=timeHours, width=12, font=("Roboto", 16))
+        self.timeHours = ctk.StringVar()
+        self.showTime1 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=23, textvariable=self.timeHours, width=12, font=("Roboto", 16))
         self.showTime1.place(relx=.45, rely=.25, anchor="center")
 
-        timeMinutes = tk.StringVar()
-        self.showTime2 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=59, textvariable=timeMinutes, width=12, font=("Roboto", 16))
-        self.showTime2.place(relx=.55, rely=.25, anchor="center")
+        self.timeMinutes = ctk.StringVar()
+        self.showTime2 = ttk.Spinbox(master=self.addShowFrame, from_=0, to=59, textvariable=self.timeMinutes, width=12, font=("Roboto", 16))
+        self.showTime2.place(relx=.575, rely=.25, anchor="center")
+
+        from main import currentCinema
+
+        screens = [f"Screen {i+1}" for i in range(len(currentCinema.getScreens()))]
+            
+        self.screenSelected = ctk.StringVar(value="Select a Screen")
+        self.selectScreen = ctk.CTkOptionMenu(master=self.addShowFrame,
+                                    fg_color="#bb86fc",
+                                    button_color="#9f54fb",
+                                    button_hover_color="#a722fa", 
+                                    variable=self.screenSelected, 
+                                    values=screens,
+                                    width=250, 
+                                    height=32)
+
+        self.selectScreen.place(relx=.5, rely=.35, anchor="center")
 
         self.addShowButton = ctk.CTkButton(master=self.addShowFrame, 
                         text="Add Show", 
@@ -351,7 +376,7 @@ class MainFrame():
                         fg_color="#bb86fc",
                         hover_color="#9f54fb")
         
-        self.addShowButton.place(relx=.5, rely=.35, anchor="center")
+        self.addShowButton.place(relx=.5, rely=.45, anchor="center")
 
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
