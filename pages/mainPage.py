@@ -354,32 +354,57 @@ class MainFrame():
         
         self.addShowButton.place(relx=.5, rely=.35, anchor="center")        
     
+    def __clearListingInfo(self):
+        self.filmName.delete(0, "end")
+        self.filmGenre.delete(0, "end")
+        self.filmAge.delete(0, "end")
+        self.filmRating.delete(0, "end")
+        self.filmDetails.delete(0, "end")
+        self.actorDetails.delete(0, "end")
+        self.filmLength1.delete(0, "end")
+        self.filmLength2.delete(0, "end")      
+
     # Loads the selected listing info into the add/update forms entry boxes when the 'Update Listing' button is clicked and the add/update listing form frame is loaded
     def __loadListingInfo(self):
-        from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
-        
+
+        from main import db, ERROR_COLOUR
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        # If no listing is selected, output an error message
+        if(self.selectedListingID == None):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="You have to select a listing to update", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
         # Selected listing info
         listing = db.listings.find_one({"_id": self.selectedListingID})
 
-        # Load listing info in add/update listing form
-        self.filmName.insert(-1, listing.get("film_name"))
-        self.filmGenre.insert(-1, listing.get("film_genre"))
-        self.filmAge.insert(-1, listing.get("film_age"))
-        self.filmRating.insert(-1, listing.get("film_rating"))
-        self.filmDetails.insert(-1, listing.get("film_description"))
-        self.actorDetails.insert(-1, listing.get("cast"))
-        film_length = listing.get("film_length")
-        self.filmLength1.insert(-1, film_length[0])
-        self.filmLength2.insert(-1, film_length[3:-1])
+        self.__clearListingInfo()
+
+        if(listing != None):
+            # Load listing info in add/update listing form
+            self.filmName.insert(-1, listing.get("film_name"))
+            self.filmGenre.insert(-1, listing.get("film_genre"))
+            self.filmAge.insert(-1, listing.get("film_age"))
+            self.filmRating.insert(-1, listing.get("film_rating"))
+            self.filmDetails.insert(-1, listing.get("film_description"))
+            self.actorDetails.insert(-1, listing.get("cast"))
+            film_length = listing.get("film_length")
+            self.filmLength1.insert(-1, film_length.split("h ")[0])
+            self.filmLength2.insert(-1, film_length.split("h ")[1].replace("m", ''))
 
 
     # Update the listing
     def __updateListing(self):
-        from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
+        from main import ERROR_COLOUR, SUCCESS_COLOUR, Listing, db
 
         listing = db.listings.find_one({"_id": self.selectedListingID})
         listingID = self.selectedListingID
-        oldListingFilmName = listing["film_name"]
+        oldListingFilmName = ""
+        if(listing != None):
+            oldListingFilmName = listing["film_name"]
        
         filmName = self.filmName.get()
         filmGenre = self.filmGenre.get()
@@ -596,6 +621,7 @@ class MainFrame():
             self.listings.remove(selectedListing)
             self.listingsList.remove(listingFound.get("film_name"))
             self.listingComboBox.configure(values=self.listingsList)
+            self.selectedListingID = None
 
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
