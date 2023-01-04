@@ -110,7 +110,38 @@ class Cinema:
 
 
     def addScreen(self, screen):
-        pass
+        seats = []
+        numOfVIP = 10
+        numOfLower = int(80*0.3)
+        numOfUpper = 80-numOfLower-numOfVIP
+        for j in range(numOfLower):
+            seats.append(LowerHallSeat(f"L{screen.getScreenNumber()}{j+1}"))
+        for j in range(numOfUpper):
+            seats.append(UpperGallerySeat(f"U{screen.getScreenNumber()}{j+1}"))
+        for j in range(numOfVIP):
+            seats.append(VIPSeat(f"V{screen.getScreenNumber()}{j+1}"))
+
+        dbSeats = []
+        for seat in seats:
+            dbSeat = {
+                "seat_number": seat.getSeatNumber(),
+                "available": seat.getAvailability()
+            }
+            dbSeats.append(db.seats.insert_one(dbSeat).inserted_id)
+        
+        screen.setCapacity(len(dbSeats))
+        screen.setSeats(dbSeats)
+        screen.setAvailableSeats(dbSeats)
+
+        dbScreen = {
+            "screen_number": screen.getScreenNumber(),
+            "seating_capacity": screen.getCapacity(),
+            "seats_available": screen.getSeats(),
+            "seats": screen.getAvailableSeats()
+        }
+
+        self.__screens.append(screen)
+        return db.screens.insert_one(dbScreen).inserted_id
 
     def removeScreen(self, screen):
         pass
@@ -143,16 +174,15 @@ class CityContainer:
             "afternoon_price" : afternoonPrice,
             "evening_price" : eveningPrice
         }
+        
+        self.__cities.append(City(cityName, morningPrice, afternoonPrice, eveningPrice))
         return db.cities.insert_one(newCity).acknowledged
-
-    def removeCity(self, city):
-        pass
 
     def getCities(self):
         return self.__cities
 
 class City:
-    def __init__(self, name, morningPrice, afternoonPrice, eveningPrice):
+    def __init__(self, name="", morningPrice=0, afternoonPrice=0, eveningPrice=0):
         self.__name = name
         self.__morningPrice = morningPrice
         self.__afternoonPrice = afternoonPrice
@@ -162,40 +192,21 @@ class City:
     def getName(self):
         return self.__name
 
-    def getTicketPrice(self, time):
-        pass
+    def getTicketPrice(self, hour):
+        if(hour < 12):
+            return self.__morningPrice
+        if(hour < 18):
+            return self.__afternoonPrice
+        if(hour < 24):
+            return self.__eveningPrice
 
     def addCinema(self, cinema):
 
         screens = []
         for i in range(int(cinema.getNumOfScreens())):
-            seats = []
-            numOfVIP = 10
-            numOfLower = int(80*0.3)
-            numOfUpper = 80-numOfLower-numOfVIP
-            for j in range(numOfLower):
-                seats.append(LowerHallSeat(f"L{i+1}{j+1}"))
-            for j in range(numOfUpper):
-                seats.append(UpperGallerySeat(f"U{i+1}{j+1}"))
-            for j in range(numOfVIP):
-                seats.append(VIPSeat(f"V{i+1}{j+1}"))
 
-            dbSeats = []
-            for seat in seats:
-                dbSeat = {
-                    "seat_number": seat.getSeatNumber(),
-                    "available": seat.getAvailability()
-                }
-                dbSeats.append(db.seats.insert_one(dbSeat).inserted_id)
-
-            dbScreen = {
-                "screen_number": i+1,
-                "seating_capacity": numOfLower+numOfUpper+numOfVIP,
-                "seats_available": dbSeats,
-                "seats": dbSeats
-            }
-
-            insertedScreen = db.screens.insert_one(dbScreen).inserted_id
+            screen = Screen(i+1)
+            insertedScreen = cinema.addScreen(screen)
             screens.append(insertedScreen)
             
         dbCinema = {
@@ -206,26 +217,15 @@ class City:
         cinema.setID(insertedCinema)
 
         db.cities.find_one_and_update({'name': self.getName().capitalize()}, {'$push': {'cinemas': insertedCinema}})
+        self.__cinemas.append(cinema)
 
         return True
 
-    def removeCinema(self, cinema):
-        pass
-
-    def setMorningTicketPrice(self, newPrice):
-        pass
-
-    def setAfternoonTicketPrice(self, newPrice):
-        pass
-
-    def setEveningTicketPrice(self, newPrice):
-        pass
-
-    def makeBookingAtDifferentCinema(self, cinema, city):
+    def makeBookingAtDifferentCinema(self, cinema):
         pass
 
 class Listing: 
-    def __init__(self,filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
+    def __init__(self, filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
         self.__filmName = filmName
         self.__filmDate = filmDate
         self.__filmDescription = filmDescription
@@ -348,7 +348,7 @@ class PaymentSystem:
     pass        
 
 class Screen: 
-    def __init__(self, screenNumber, capacity, seats):
+    def __init__(self, screenNumber, capacity=0, seats=[]):
         self.__screenNumber = screenNumber
         self.__seatingCapacity = capacity
         self.__seatsAvailabe = seats
@@ -369,6 +369,20 @@ class Screen:
     def getAvailableSeats(self):
         return self.__seatsAvailabe
 
+    def setSeats(self, seats):
+        self.__seats = seats
+
+    def setAvailableSeats(self, seats):
+        self.__seatsAvailabe = seats
+
+    def getScreenNumber(self):
+        return self.__screenNumber
+
+    def setCapacity(self, capacity):
+        self.__seatingCapacity = capacity
+
+    def getCapacity(self):
+        return self.__seatingCapacity
 
 class AvailabilityChecker:
     def __init__(self, seatType, screen):
