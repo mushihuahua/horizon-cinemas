@@ -1,3 +1,4 @@
+import json
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import tkinter as tk
@@ -113,6 +114,7 @@ class Cinema:
             "film_rating": listing.filmRating,
             "film_description": listing.filmDescription,
             "cast": listing.cast,
+            "film_length": listing.filmLength,
             "shows": listing.shows
         }
 
@@ -181,6 +183,16 @@ class Listing:
         self.filmAge = filmAge
         self.filmRating = filmRating
         self.shows = shows
+
+    def changeListingInformation(self, listingID, listing):
+        
+        return db.listings.update_one({"_id":listingID}, {"$set":{"film_name":listing.filmName,
+                                                                "film_genre":listing.filmGenre,
+                                                                "film_age":listing.filmAge,
+                                                                "film_rating":listing.filmRating,
+                                                                "film_description":listing.filmDescription,
+                                                                "cast":listing.cast,
+                                                                "film_length":listing.filmLength,}}).acknowledged
 
     def getShows(self):
         return self.shows

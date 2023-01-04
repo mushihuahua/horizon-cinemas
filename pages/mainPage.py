@@ -178,22 +178,25 @@ class MainFrame():
         self.listingComboBox.pack(padx=20, pady=20)
 
         self.filmNameLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Name: ", font=("", 18))
-        self.filmNameLabel.pack(padx=20, pady=10)
+        self.filmNameLabel.pack(padx=20, pady=5)
         
         self.filmDateLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Release Date: ", font=("", 18))
-        self.filmDateLabel.pack(padx=20, pady=10)
+        self.filmDateLabel.pack(padx=20, pady=5)
 
         self.filmDescriptionLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Description: ", font=("", 18))
-        self.filmDescriptionLabel.pack(padx=20, pady=10)
+        self.filmDescriptionLabel.pack(padx=20, pady=5)
 
         self.filmGenreLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Genre: ", font=("", 18))
-        self.filmGenreLabel.pack(padx=20, pady=10)
+        self.filmGenreLabel.pack(padx=20, pady=5)
 
         self.filmRatingLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Rating: ", font=("", 18))
-        self.filmRatingLabel.pack(padx=20, pady=10)
+        self.filmRatingLabel.pack(padx=20, pady=5)
 
         self.actorDetailsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Cast: ", font=("", 18))
-        self.actorDetailsLabel.pack(padx=20, pady=10)
+        self.actorDetailsLabel.pack(padx=20, pady=5)
+
+        self.filmLengthLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Length: ", font=("", 18))
+        self.filmLengthLabel.pack(padx=20, pady=5)
 
         self.showsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
         self.showsLabel.pack(padx=20, anchor="w")
@@ -272,8 +275,8 @@ class MainFrame():
         self.filmRating.place(relx=.6, rely=.3, anchor="center")
         # self.firstNameEntry.bind('<Return>', self.__createAccount)
 
-        self.filmLengthLabel = ctk.CTkLabel(master=self.addListingFrame, text="Film Length:", font=("Roboto", 14))
-        self.filmLengthLabel.place(relx=.35, rely=.375, anchor="center")
+        self.filmLengthEntryLabel = ctk.CTkLabel(master=self.addListingFrame, text="Film Length:", font=("Roboto", 14))
+        self.filmLengthEntryLabel.place(relx=.35, rely=.375, anchor="center")
 
         self.lengthHours = tk.StringVar()
         self.filmLength1 = ttk.Spinbox(master=self.addListingFrame, from_=0, to=4, textvariable=self.lengthHours, width=12, font=("Roboto", 16))
@@ -316,7 +319,8 @@ class MainFrame():
                         height=52, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command=self.__updateListing)
         
         self.updateButton.place(relx=.5, rely=.775, anchor="center")
 
@@ -471,11 +475,145 @@ class MainFrame():
         success = self.currentListing.removeShow(showNum)
 
         if(success):
-            self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
-            self.successMessage.pack()
+            self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))        
+                self.successMessage.pack()
 
             self.__viewListings(self.choice)
                         
+
+    def __clearListingInfo(self):
+        self.filmName.delete(0, "end")
+        self.filmGenre.delete(0, "end")
+        self.filmAge.delete(0, "end")
+        self.filmRating.delete(0, "end")
+        self.filmDetails.delete(0, "end")
+        self.actorDetails.delete(0, "end")
+        self.filmLength1.delete(0, "end")
+        self.filmLength2.delete(0, "end")      
+
+    # Loads the selected listing info into the add/update forms entry boxes when the 'Update Listing' button is clicked and the add/update listing form frame is loaded
+    def __loadListingInfo(self):
+
+        from main import db, ERROR_COLOUR
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        # If no listing is selected, output an error message
+        if(self.selectedListingID == None):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="You have to select a listing to update", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        # Selected listing info
+        listing = db.listings.find_one({"_id": self.selectedListingID})
+
+        self.__clearListingInfo()
+
+        if(listing != None):
+            # Load listing info in add/update listing form
+            self.filmName.insert(-1, listing.get("film_name"))
+            self.filmGenre.insert(-1, listing.get("film_genre"))
+            self.filmAge.insert(-1, listing.get("film_age"))
+            self.filmRating.insert(-1, listing.get("film_rating"))
+            self.filmDetails.insert(-1, listing.get("film_description"))
+            self.actorDetails.insert(-1, listing.get("cast"))
+            film_length = listing.get("film_length")
+            self.filmLength1.insert(-1, film_length.split("h ")[0])
+            self.filmLength2.insert(-1, film_length.split("h ")[1].replace("m", ''))
+
+
+    # Update the listing
+    def __updateListing(self):
+        from main import ERROR_COLOUR, SUCCESS_COLOUR, Listing, db
+
+        listing = db.listings.find_one({"_id": self.selectedListingID})
+        listingID = self.selectedListingID
+        oldListingFilmName = ""
+        if(listing != None):
+            oldListingFilmName = listing["film_name"]
+       
+        filmName = self.filmName.get()
+        filmGenre = self.filmGenre.get()
+        filmAge = self.filmAge.get()
+        filmRating = self.filmRating.get()
+        filmDetails = self.filmDetails.get()
+        cast = self.actorDetails.get()
+
+        lengthHours = self.lengthHours.get()
+        lengthMinutes = self.lengthMinutes.get()
+        filmLength = f"{lengthHours}h {lengthMinutes}m"
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget()
+
+        if(len(filmName) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Name is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(filmGenre) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Genre is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        try:
+            filmAge = int(filmAge)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Age should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        if(len(filmRating) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Rating is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(filmDetails) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Details is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        if(len(cast) == 0):
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Cast Details is required", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+        
+        try:
+            lengthHours = int(lengthHours)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Length (Hours) should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        try:
+            lengthMinutes = int(lengthMinutes)
+        except ValueError:
+            self.error = ctk.CTkLabel(master=self.addListingFrame, text="Film Length (Minutes) should be a number", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        success = False
+        if(self.loggedInUser.__class__.__name__ == "Admin" or self.loggedInUser.__class__.__name__ == "Manager"):
+            listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
+            success = listing.changeListingInformation(listingID, listing)
+
+        if(success):
+            self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing updated", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+        
+            self.listings = list(db.listings.find())
+            if filmName not in self.listingsList:
+                for i in range(len(self.listingsList)):
+                    if self.listingsList[i] == oldListingFilmName:
+                        self.listingsList[i] = filmName
+
+            self.listingComboBox.configure(values=self.listingsList)
+        
+        
 
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
@@ -568,12 +706,13 @@ class MainFrame():
         self.filmGenreLabel.configure(text=("Film Genre: " + selectedListing.get("film_genre")))
         self.filmRatingLabel.configure(text=("Film Rating: " + selectedListing.get("film_rating")))
         self.actorDetailsLabel.configure(text=("Cast: " + selectedListing.get("cast")))
-
+        self.filmLengthLabel.configure(text=("Film Length: " + selectedListing.get("film_length")))
         self.selectedListingID = selectedListing.get("_id")
         self.currentListing = Listing(selectedListing.get("_id"), selectedListing.get("film_name"), selectedListing.get("film_length"), selectedListing.get("film_description"), selectedListing.get("cast"), selectedListing.get("film_genre"), selectedListing.get("film_age"), selectedListing.get("film_rating"), selectedListing.get("shows"))
 
         self.shows = []
         listing = db.listings.find_one({"_id": self.selectedListingID})
+        
         if(listing != None):
             self.shows = listing.get("shows")
 
@@ -608,11 +747,12 @@ class MainFrame():
 
         success = currentCinema.removeListing(self.selectedListingID)
         if(success):
-
+            
             selectedListing = self.listings[self.listingsList.index(self.selectedListing.get())]
             self.listings.remove(selectedListing)
             self.listingsList.remove(listingFound.get("film_name"))
             self.listingComboBox.configure(values=self.listingsList)
+            self.selectedListingID = None
 
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
@@ -632,7 +772,7 @@ class MainFrame():
         if(employeeType == "Admin" or employeeType == "Manager"):
             if(frame == self.viewListingsFrame):
                 self.bookingButton.configure(text="Add Listing", command=lambda: self.switchFrames(self.addListingFrame))
-                self.viewListingsButton.configure(text="Update Listing", command=lambda: self.switchFrames(self.addListingFrame))
+                self.viewListingsButton.configure(text="Update Listing", command=lambda: [self.switchFrames(self.addListingFrame), self.__loadListingInfo()])
                 self.viewBookingsButton.configure(text="Remove Listing", command=self.__removeListing)
 
                 self.addShowButton = ctk.CTkButton(master=self.buttonsFrame, 
