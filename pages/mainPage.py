@@ -169,7 +169,7 @@ class MainFrame():
         self.listings = list(db.listings.find())
         self.listingsList = [listing.get("film_name") for listing in self.listings]
 
-        self.selectedListing = ctk.StringVar()
+        self.selectedListing = ctk.StringVar(value="Select Listing")
 
         if(len(self.listingsList) == 0):
             self.listingsList = ["Empty"]
@@ -433,7 +433,7 @@ class MainFrame():
             return  
                     
         if(showDate <= todayDate):
-            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Shows can only be added for the next day", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Shows can't be before tomorrow", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
             return  
         
@@ -476,7 +476,7 @@ class MainFrame():
 
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))        
-                self.successMessage.pack()
+            self.successMessage.pack()
 
             self.__viewListings(self.choice)
                         
@@ -598,7 +598,7 @@ class MainFrame():
 
         success = False
         if(self.loggedInUser.__class__.__name__ == "Admin" or self.loggedInUser.__class__.__name__ == "Manager"):
-            listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
+            listing = Listing(0, filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
             success = listing.changeListingInformation(listingID, listing)
 
         if(success):
@@ -689,6 +689,8 @@ class MainFrame():
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
+
+            self.__clearListingInfo()
         
             self.listings = list(db.listings.find())
             self.listingsList.append(filmName)
@@ -753,6 +755,7 @@ class MainFrame():
             self.listingsList.remove(listingFound.get("film_name"))
             self.listingComboBox.configure(values=self.listingsList)
             self.selectedListingID = None
+            self.selectedListing.set("Select Listing")
 
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
