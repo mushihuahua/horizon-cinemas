@@ -125,18 +125,15 @@ class Cinema:
         for seat in seats:
             dbSeat = {
                 "seat_number": seat.getSeatNumber(),
-                "available": seat.getAvailability()
             }
             dbSeats.append(db.seats.insert_one(dbSeat).inserted_id)
         
         screen.setCapacity(len(seats))
         screen.setSeats(seats)
-        screen.setAvailableSeats(seats)
 
         dbScreen = {
             "screen_number": screen.getScreenNumber(),
             "seating_capacity": screen.getCapacity(),
-            "seats_available": dbSeats,
             "seats": dbSeats
         }
 
@@ -273,33 +270,23 @@ class Show:
         pass
 
 class Seat:
-    def __init__(self, seatNumber, available=True):
+    def __init__(self, seatNumber):
         self.__seatNumber = seatNumber
-        self.__available = available
-
-    def changeAvailability(self):
-        if(self.__available):
-            self.__available = False
-        else:
-            self.__available = True
-        
-    def getAvailability(self):
-        return self.__available
 
     def getSeatNumber(self):
         return self.__seatNumber
 
 class LowerHallSeat(Seat): 
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class UpperGallerySeat(Seat): 
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class VIPSeat(UpperGallerySeat):
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class Ticket:
     def __init__(self, seatNo):
@@ -348,7 +335,6 @@ class Screen:
     def __init__(self, screenNumber, capacity=0, seats=[]):
         self.__screenNumber = screenNumber
         self.__seatingCapacity = capacity
-        self.__seatsAvailabe = seats
         self.__seats = seats
         
     def checkVIPAvailability(self):
@@ -363,14 +349,8 @@ class Screen:
     def getSeats(self):
         return self.__seats
 
-    def getAvailableSeats(self):
-        return self.__seatsAvailabe
-
     def setSeats(self, seats):
         self.__seats = seats
-
-    def setAvailableSeats(self, seats):
-        self.__seatsAvailabe = seats
 
     def getScreenNumber(self):
         return self.__screenNumber
