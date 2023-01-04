@@ -2,6 +2,8 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
 from tkcalendar import *
+import datetime
+
 # Booking View
 class MainFrame():
     def __init__(self, container, loggedInUser):
@@ -392,15 +394,13 @@ class MainFrame():
             return                 
         
         screenIndex = self.selectionScreens.index(self.screenSelected.get())
-        showDate = self.showDate.get_date().strftime("%d-%m-%Y")
+        showDate = self.showDate.get_date()
         showTimeHour = self.timeHours.get()
         showTimeMinutes = self.timeMinutes.get()
-        if(len(showTimeHour) < 10):
-            showTimeHour = f"0{showTimeHour}"
-        if(len(showTimeMinutes) < 10):
-            showTimeMinutes = f"0{showTimeMinutes}"
         showTime = f"{showTimeHour}:{showTimeMinutes}"
         showScreen = currentCinema.getScreens()[screenIndex]
+        todayDate = datetime.date.today()
+        
         success = False
         
         screen = db.listings.find_one({"_id": self.selectedListingID})
@@ -412,11 +412,30 @@ class MainFrame():
         if(numOfShows == 4):
             self.error = ctk.CTkLabel(master=self.addShowFrame, text="There are already 4 shows associated with this listing", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
-            return                  
-
+            return   
+         
+        if (showTimeHour == '' or showTimeMinutes == ''):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Enter timings", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+        
+        if(int(showTimeHour) > 23 or int(showTimeHour) < 0):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Incorrect timings entered", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+        
+        if(int(showTimeMinutes) > 59 or int(showTimeMinutes) < 0):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Incorrect timings entered", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return  
+                    
+        if(showDate <= todayDate):
+            self.error = ctk.CTkLabel(master=self.addShowFrame, text="Shows can only be added for the next day", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return  
         
         if(self.loggedInUser.__class__.__name__ == "Manager"):
-            success = self.currentListing.addShow(showDate, showTime, showScreen)
+            success = self.currentListing.addShow(showDate.strftime("%d-%m-%Y"), showTime, showScreen)
             
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.addShowFrame, text="Show added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
@@ -424,11 +443,8 @@ class MainFrame():
             
             newShow = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {numOfShows+1} - Date Time", value=f"show{numOfShows+1}", variable=self.selectedShow)
             self.showsButtons.append(newShow)
-            newShow.pack(fill='x', padx=5, pady=5, side="left")
-            
+            newShow.pack(fill='x', padx=5, pady=5, side="left")  
             return              
-
-        
         
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
@@ -538,9 +554,6 @@ class MainFrame():
             self.showsButtons.append(r)
             r.pack(fill='x', padx=5, pady=5, side="left")
             
-
-
-
     def __removeListing(self):
         from main import db, SUCCESS_COLOUR, ERROR_COLOUR, currentCinema
 
