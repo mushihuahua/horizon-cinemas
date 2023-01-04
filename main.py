@@ -129,22 +129,19 @@ class Cinema:
             }
             dbSeats.append(db.seats.insert_one(dbSeat).inserted_id)
         
-        screen.setCapacity(len(dbSeats))
-        screen.setSeats(dbSeats)
-        screen.setAvailableSeats(dbSeats)
+        screen.setCapacity(len(seats))
+        screen.setSeats(seats)
+        screen.setAvailableSeats(seats)
 
         dbScreen = {
             "screen_number": screen.getScreenNumber(),
             "seating_capacity": screen.getCapacity(),
-            "seats_available": screen.getSeats(),
-            "seats": screen.getAvailableSeats()
+            "seats_available": dbSeats,
+            "seats": dbSeats
         }
 
         self.__screens.append(screen)
         return db.screens.insert_one(dbScreen).inserted_id
-
-    def removeScreen(self, screen):
-        pass
 
     def getCity(self):
         return self.__city
