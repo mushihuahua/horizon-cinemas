@@ -378,6 +378,8 @@ class MainFrame():
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
 
         listing = db.listings.find_one({"_id": self.selectedListingID})
+        listingID = self.selectedListingID
+        oldListingFilmName = listing["film_name"]
        
         filmName = self.filmName.get()
         filmGenre = self.filmGenre.get()
@@ -390,7 +392,6 @@ class MainFrame():
         lengthMinutes = self.lengthMinutes.get()
         filmLength = f"{lengthHours}h {lengthMinutes}m"
 
-        '''
         if(self.error != None):
             self.error.pack_forget()
 
@@ -446,18 +447,21 @@ class MainFrame():
         success = False
         if(self.loggedInUser.__class__.__name__ == "Admin" or self.loggedInUser.__class__.__name__ == "Manager"):
             listing = Listing(filmName, filmLength, filmDetails, cast, filmGenre, filmAge, filmRating)
-            success = currentCinema.addListing(listing)
+            success = listing.changeListingInformation(listingID, listing)
 
         if(success):
-            self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage = ctk.CTkLabel(master=self.addListingFrame, text="Listing updated", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
         
             self.listings = list(db.listings.find())
-            self.listingsList.append(filmName)
-        
+            if filmName not in self.listingsList:
+                for i in range(len(self.listingsList)):
+                    if self.listingsList[i] == oldListingFilmName:
+                        self.listingsList[i] = filmName
+
             self.listingComboBox.configure(values=self.listingsList)
         
-        '''
+        
 
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
