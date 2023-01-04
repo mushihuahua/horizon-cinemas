@@ -135,7 +135,7 @@ class Cinema:
         pass
 
     def getCity(self):
-        pass
+        return self.__city
     
     def getID(self):
         return self.__id
@@ -167,18 +167,6 @@ class City:
     def addCinema(self, cinema):
         pass
 
-    def removeCinema(self, cinema):
-        pass
-
-    def setMorningTicketPrice(self, newPrice):
-        pass
-
-    def setAfternoonTicketPrice(self, newPrice):
-        pass
-
-    def setEveningTicketPrice(self, newPrice):
-        pass
-
     def makeBookingAtDifferentCinema(self, cinema, city):
         pass
 
@@ -195,7 +183,7 @@ class Listing:
         self.shows = shows
 
     def getShows(self):
-        pass
+        return self.shows
 
     def addShow(self, showDate, showTime, screenID):
         newShow = {
@@ -206,12 +194,25 @@ class Listing:
         addShowID = db.shows.insert_one(newShow).inserted_id
         db.listings.find_one_and_update({"_id": self.id}, {"$push": {"shows": addShowID}})
 
-        return True
+        return addShowID
         
+    def removeShow(self, showID):
+        listingID = 0
+
+        for listing in db.listings.find({}):
+            for show in listing.get("shows"):
+                if(show == ObjectId(showID)):
+                    listingID = listing.get("_id")
+                    break
+
+        db.shows.find_one_and_delete({"_id": ObjectId(showID)})
+        success = db.listings.find_one_and_update({"_id": listingID}, {"$pull": {"shows": ObjectId(showID)}})
+
+        if(success != None):
+            return True
+        return False
 
 
-    def removeShow(self, show):
-        pass
 
 
 class Show:

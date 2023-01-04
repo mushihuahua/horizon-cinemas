@@ -8,8 +8,7 @@ import datetime
 class MainFrame():
     def __init__(self, container, loggedInUser):
 
-        from datetime import datetime
-        date = datetime.today().strftime('%Y-%m-%d')
+        date = datetime.date.today().strftime('%Y-%m-%d')
         year = int(date[0:4])
         month = int(date[5:7])
         day = int(date[8:])
@@ -197,7 +196,7 @@ class MainFrame():
         self.actorDetailsLabel.pack(padx=20, pady=10)
 
         self.showsLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Shows: ", font=("", 18))
-        self.showsLabel.pack(padx=20, pady=10, anchor="w")
+        self.showsLabel.pack(padx=20, anchor="w")
 
         # View Bookings
         self.viewBookingsLabel = ctk.CTkLabel(master=self.viewBookingsFrame, text="View Bookings", font=("Roboto", 32, "bold"))
@@ -375,7 +374,7 @@ class MainFrame():
     
     
     def __addShow(self):
-        from main import Listing, currentCinema, ERROR_COLOUR, SUCCESS_COLOUR, db
+        from main import currentCinema, ERROR_COLOUR, SUCCESS_COLOUR, db
         
         if(self.error != None):
             self.error.pack_forget()
@@ -441,11 +440,43 @@ class MainFrame():
             self.successMessage = ctk.CTkLabel(master=self.addShowFrame, text="Show added", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
             
-            newShow = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {numOfShows+1} - Date Time", value=f"show{numOfShows+1}", variable=self.selectedShow)
+            date = showDate.strftime("%d-%m-%Y")
+
+            newShow = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {numOfShows+1} - {date} {showTime}", value=success, variable=self.selectedShow)
             self.showsButtons.append(newShow)
             newShow.pack(fill='x', padx=5, pady=5, side="left")  
             return              
         
+    def __removeShow(self):
+        from main import SUCCESS_COLOUR, ERROR_COLOUR
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget() 
+
+        if(self.selectedListingID == None):
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a listing", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return   
+
+        showNum = self.selectedShow.get()
+
+        if(showNum == ''):
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a show", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return            
+
+        success = self.currentListing.removeShow(showNum)
+
+        if(success):
+            self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()
+
+            self.__viewListings(self.choice)
+                        
+
     def __addListing(self):
         from main import ERROR_COLOUR, SUCCESS_COLOUR, currentCinema, Listing, db
 
@@ -529,6 +560,7 @@ class MainFrame():
         
         from main import db, Listing
 
+        self.choice = choice
         selectedListing = self.listings[self.listingsList.index(self.selectedListing.get())]
         self.filmNameLabel.configure(text=("Film Name: " + selectedListing.get("film_name")))
         self.filmDateLabel.configure(text=("Film Release Date: " + str(selectedListing.get("film_age"))))
@@ -547,12 +579,16 @@ class MainFrame():
 
         for i in self.showsButtons:
             i.pack_forget()
-
+        
         self.selectedShow = ctk.StringVar()
         for i in range(len(self.shows)):
-            r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i+1} - Date Time", value=f"show{i+1}", variable=self.selectedShow)
-            self.showsButtons.append(r)
-            r.pack(fill='x', padx=5, pady=5, side="left")
+            show = db.shows.find_one({"_id": self.shows[i]})
+            if(show != None):
+                showDate = show.get("show_date")
+                showTime = show.get("show_time")
+                r = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {i+1} - {showDate} {showTime}", value=show.get("_id"), variable=self.selectedShow)
+                self.showsButtons.append(r)
+                r.pack(fill='x', padx=5, side="left")
             
     def __removeListing(self):
         from main import db, SUCCESS_COLOUR, ERROR_COLOUR, currentCinema
@@ -619,7 +655,7 @@ class MainFrame():
                                             corner_radius=7,
                                             fg_color="#9f54fb",
                                             hover_color="#a722fa",
-                                            command=None)
+                                            command=self.__removeShow)
 
                 self.removeShowButton.pack(side="left", padx=15)
 
