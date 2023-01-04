@@ -112,6 +112,7 @@ class Cinema:
             "film_rating": listing.filmRating,
             "film_description": listing.filmDescription,
             "cast": listing.cast,
+            "film_length": listing.filmLength,
             "shows": listing.shows
         }
 
