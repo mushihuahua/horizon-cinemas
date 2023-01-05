@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import weakref
 import random
+import certifi
 
 
 ctk.set_appearance_mode("dark")
@@ -59,17 +60,9 @@ class Admin(BookingStaff):
     
 class Manager(Admin): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
-        
-    def generateReport(self):
-        # Place holder
-        self.__report = None
-    
-class Manager(Admin): 
-    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
 class Report:
-    def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
     def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
         self.__totalMonthlyRevenue = totalMonthlyRevenue
@@ -564,7 +557,7 @@ class LoginFrame():
                     global mainView, adminView, managerView, accountView, menu
                     menu = MenuFrame(app)
                     mainView = MainFrame(app)
-                    adminView = AdminFrame(app)
+                    adminView = AdminFrame(app, loggedInUser)
                     managerView = ManagerFrame(app, loggedInUser)
                     accountView = AccountFrame(app)
                     

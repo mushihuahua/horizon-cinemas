@@ -243,7 +243,3 @@ class AdminFrame():
         frame.pack(pady=20, padx=20, fill="both", expand=True)
 
         self.buttonsFrame.pack(fill="both", padx=20)
-
-
-        self.test = ctk.CTkLabel(master=self.frame, text="Admin")
-        self.test.pack()
