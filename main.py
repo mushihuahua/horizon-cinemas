@@ -198,9 +198,17 @@ class Listing:
         return self.shows
 
     def addShow(self, showDate, showTime, screenID):
+
+        screen = db.screens.find_one({"_id": screenID})
+
+        seats = []
+        if(screen != None):
+            seats = screen.get("seats")
+
         newShow = {
             "show_date" : showDate, 
             "show_time" : showTime,
+            "available_seats": seats,
             "screen_number" : screenID 
         }
         addShowID = db.shows.insert_one(newShow).inserted_id
