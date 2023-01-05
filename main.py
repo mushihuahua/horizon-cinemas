@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
@@ -13,10 +14,13 @@ import random
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+ca = certifi.where()
 cluster = "mongodb+srv://mushihuahua:TfOPb5fwlgyFMNHE@horizoncinemas.ldas1hn.mongodb.net/?retryWrites=true&w=majority"
-client = MongoClient(cluster)
+client = MongoClient(cluster, tlsCAFile=ca)
 
 db = client.horizonCinemasDB
+ERROR_COLOUR="#e23636"
+SUCCESS_COLOUR="#66bb6a"
 ERROR_COLOUR="#e23636"
 SUCCESS_COLOUR="#66bb6a"
 
@@ -55,9 +59,17 @@ class Admin(BookingStaff):
     
 class Manager(Admin): 
     def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
+        
+    def generateReport(self):
+        # Place holder
+        self.__report = None
+    
+class Manager(Admin): 
+    def __init__(self, employeeID, passwordHash, cinema, firstName, lastName):
         super().__init__(employeeID, passwordHash, cinema, firstName, lastName)
 
 class Report:
+    def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
     def __init__(self, numberOfListingBookings=0, totalMonthlyRevenue=0, topFilm=0, staffBookings=0):
         self.__numberOfListingBookings = numberOfListingBookings
         self.__totalMonthlyRevenue = totalMonthlyRevenue
@@ -431,6 +443,8 @@ class App(ctk.CTk):
 
     width = 1920
     height = 1080
+    width = 1920
+    height = 1080
     x_pos = 0
     y_pos = 0
 
@@ -440,8 +454,14 @@ class App(ctk.CTk):
         self.frames = []
         self.buttons = []
 
+
+        self.frames = []
+        self.buttons = []
+
         self.title("Horizon Cinemas")
         if "nt" == os.name:
+            self.iconbitmap(bitmap = "icon.ico")
+
             self.iconbitmap(bitmap = "icon.ico")
 
         self.geometry(f"{self.width}x{self.height}+{self.x_pos}+{self.y_pos}")
