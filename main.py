@@ -101,7 +101,37 @@ class Cinema:
         pass
     
     def makeBooking(self, newBooking):
-        pass
+
+        seatIDs = newBooking.getShow().getSeatsAvailable()
+        seatNums = []
+        ticketType = newBooking.getTicketType()
+        ticketTypeClass = TicketFactory().getTicketType(ticketType)
+        for seatID in seatIDs:
+            seat = db.seats.find_one({"_id": seatID})
+            if(seat != None):
+                seatNums.append(seat.get("seat_number"))
+        
+        tickets = []
+        numberOfTickets = newBooking.getNumberOfTickets()
+        for c, seat in enumerate(seatNums):
+            if(seat[0] == ticketType[0]):
+                for i in range(numberOfTickets):          
+                    tickets.append(newBooking.addTicket(ticketTypeClass(seatNums[c+i])))
+                    newBooking.getShow().removeSeat(seatIDs[c])
+                break
+
+
+        bookingDB = {
+            "booking_date": newBooking.getBookingDate(),
+            "num_of_tickets": newBooking.getNumberOfTickets(),
+            "cancelled": False,
+            "cost": newBooking.getTotal(),
+            "tickets": tickets,
+            "cinema": self.getID()
+        }
+        bookingID = db.bookings.insert_one(bookingDB).inserted_id
+        newBooking.setBookingReference(bookingID)
+        self.__bookings.append(newBooking)
     
     def cancelBooking(self, bookingReference):
         pass
@@ -118,6 +148,7 @@ class Cinema:
             "shows": listing.shows
         }
 
+        self.__listings.append(listing)
         return db.listings.insert_one(dbListing).acknowledged
 
     def removeListing(self, listingID):
@@ -144,6 +175,9 @@ class Cinema:
 
     def getScreens(self):
         return self.__screens    
+    
+    def getLocation(self):
+        return self.__location
 
 class CityContainer: 
     def __init__(self):
@@ -163,8 +197,13 @@ class City:
         self.__eveningPrice = eveningPrice
         self.__cinemas = []
 
-    def getTicketPrice(self, time):
-        pass
+    def getTicketPrice(self, hour):
+        if(hour < 12):
+            return self.__morningPrice
+        if(hour < 18):
+            return self.__afternoonPrice
+        if(hour < 24):
+            return self.__eveningPrice
 
     def addCinema(self, cinema):
         pass
@@ -232,14 +271,13 @@ class Listing:
             return True
         return False
 
-
-
-
 class Show:
-    def __init__(self, listing, date, time, screen):
+    def __init__(self, id, listing, date, time, seatsAvailable, screen):
+        self.__id = id
         self.__listing = listing
         self.__date = date
         self.__time = time
+        self.__seatsAvailable = seatsAvailable
         self.__screen = screen
         
     def getScreen(self):
@@ -252,7 +290,14 @@ class Show:
         pass
 
     def getTime(self):
-        pass
+        return self.__time
+
+    def getSeatsAvailable(self):
+        return self.__seatsAvailable
+
+    def removeSeat(self, seatID):
+        self.__seatsAvailable.remove(seatID)
+        db.shows.update_one({"_id": self.__id}, {"$pull": {"available_seats": seatID}})
 
 class Seat:
     def __init__(self, seatNumber, available=True):
@@ -290,26 +335,39 @@ class Ticket:
     def getPricePercentage(self):
         pass
 
+    def getSeatNumber(self):
+        return self.__seatNo
+
 class LowerHallTicket(Ticket): 
     def getPricePercentage(self):
         return 1
+    
+    def getTicketType(self):
+        return "Lower"
 
 class UpperGalleryTicket(Ticket): 
     def getPricePercentage(self):
         return 1.2 
 
+    def getTicketType(self):
+        return "Upper"
+
 class VIPTicket(UpperGalleryTicket):
     def getPricePercentage(self):
         return 1.2 * 1.2   
 
+    def getTicketType(self):
+        return "VIP"
+
 class TicketFactory: 
     def getTicketType(self, ticketType):
-        if(ticketType == "Lower Hall"):
+        if(ticketType == "Lower"):
             return LowerHallTicket
-        elif(ticketType == "Upper Gallery"):
+        elif(ticketType == "Upper"):
             return UpperGalleryTicket
         elif(ticketType == "VIP"):
             return VIPTicket
+        return Ticket
 
 class Receipt:
     def __init__(self, booking):
@@ -317,11 +375,6 @@ class Receipt:
 
     def displayReceipt(self):
         pass
-
-class AvailabilitvChecker:
-    def __init__(self, type, screen):
-        self.__type = type
-        self.__screen = screen
 
 class PaymentSystem:
     pass        
@@ -331,7 +384,6 @@ class Screen:
         self.__capacity = capacity
         self.__screenNumber = int
         self.__seatingCapacity = int
-        self.__seatsAvailabe = []
         self.__seats = []
         
     def checkVIPAvailability(self):
@@ -349,54 +401,82 @@ class Screen:
     def getSeats(self):
         return self.__seats
 
-    def getAvailableSeats(self):
-        pass
-
 
 class AvailabilityChecker:
-    def __init__(self, seatType, screen):
+    def __init__(self, seatType, show):
         self.seatType = seatType
-        self.screen = screen
+        self.show = show
     
     def checkAvailability(self):
-        pass
+        seatNums = []
+        for seatID in self.show.getSeatsAvailable():
+            seat = db.seats.find_one({"_id": seatID})
+            if(seat != None):
+                seatNums.append(seat.get("seat_number"))
+
+        numOfSeatsAvailable = 0
+        for seatNum in seatNums:
+            if(self.seatType[0] == seatNum[0]):
+                numOfSeatsAvailable += 1
+        
+        return numOfSeatsAvailable
+    
 
 class Booking: 
-    def __init__(self, show, cinema, screen, ticketType, bookingDate):
-        self.__bookingReference = int # Randomly Generated
+    def __init__(self, bookingReference, numOfTickets, show, cinema, ticketType, bookingDate):
+        self.__bookingReference = bookingReference 
+        self.__numOfTickets = numOfTickets
         self.__bookingDate = bookingDate
         self.__ticketType = ticketType
         self.__tickets = []
         self.__cancelled = False
         self.__totalCost = 0
         self.__show = show
-        self.__screen = screen
         self.__receipt = None
         self.__cinema = cinema 
 
     def calculateTotal(self):
-        pass
+        ticketTypeClass = TicketFactory().getTicketType(self.__ticketType)
+        pricePercentage = ticketTypeClass("").getPricePercentage()
 
-    def addTicket(self):
-        pass
+        self.__totalCost = pricePercentage * self.__numOfTickets * self.__cinema.getCity().getTicketPrice(self.__show.getTime())
+        return self.__totalCost
+
+    def addTicket(self, ticket):
+        ticketDB = {
+            "seat_number": ticket.getSeatNumber(),
+            "ticket_type": ticket.getTicketType()
+        }
+
+        self.__tickets.append(ticket)
+        return db.tickets.insert_one(ticketDB).inserted_id
     
     def getTotal(self):
         return self.__totalCost
 
-    def getScreen(self):
-        return self.__screen
-
     def getCinema(self):
         return self.__cinema
 
+    def getShow(self):
+        return self.__show
+
     def getNumberOfTickets(self):
-        return len(self.__tickets)
+        return self.__numOfTickets
+
+    def getBookingDate(self):
+        return self.__bookingDate
 
     def generateReceipt(self):
         self.__receipt = Receipt(self)
 
     def printReceipt(self):
         pass
+
+    def getTicketType(self):
+        return self.__ticketType
+
+    def setBookingReference(self, ref):
+        self.__bookingReference = ref
 
     def getBookingReference(self):
         return self.__bookingReference
@@ -648,15 +728,15 @@ class MenuFrame():
                                     hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(managerView.frame, self.managerButton))
 
-        self.accountButton = ctk.CTkButton(master=self.menuFrame, 
-                                    text="Account",
-                                    width=250,
-                                    height=75,
-                                    font=("", 16, "bold"),
-                                    corner_radius=7,
-                                    fg_color="#bb86fc",
-                                    hover_color="#9f54fb",
-                                    command=lambda: container.switchFrame(accountView.frame, self.accountButton))
+        # self.accountButton = ctk.CTkButton(master=self.menuFrame, 
+        #                             text="Account",
+        #                             width=250,
+        #                             height=75,
+        #                             font=("", 16, "bold"),
+        #                             corner_radius=7,
+        #                             fg_color="#bb86fc",
+        #                             hover_color="#9f54fb",
+        #                             command=lambda: container.switchFrame(accountView.frame, self.accountButton))
 
         self.logoutButton = ctk.CTkButton(master=self.menuFrame, 
                             text="Logout",
@@ -675,13 +755,13 @@ class MenuFrame():
         self.bookingStaffButton.pack(side=tk.LEFT, padx=15, pady=10)
         self.adminButton.pack(side=tk.LEFT, padx=15, pady=10)
         self.managerButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.accountButton.pack(side=tk.LEFT, padx=15, pady=10)
+        # self.accountButton.pack(side=tk.LEFT, padx=15, pady=10)
 
         self.logoutButton.pack(side=tk.RIGHT, padx=20, pady=10)
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
-        container.buttons.append(self.accountButton)
+        # container.buttons.append(self.accountButton)
 
     def __logout(self):
         menu.menuFrame.pack_forget()

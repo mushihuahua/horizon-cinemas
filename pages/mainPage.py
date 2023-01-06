@@ -8,7 +8,7 @@ import datetime
 class MainFrame():
     def __init__(self, container, loggedInUser):
 
-        from main import db
+        from main import db, currentCinema
 
         date = datetime.date.today().strftime('%Y-%m-%d')
         year = int(date[0:4])
@@ -46,8 +46,8 @@ class MainFrame():
                         selectmode='day', 
                         year=year, 
                         month=month, 
-                        day=day,
-                        mindate=datetime.date.today(),
+                        day=day+1,
+                        mindate=datetime.date.today()+ datetime.timedelta(days=1),
                         font=("", 10))
     
         self.calendar.bind("<<CalendarSelected>>", self.__loadListingsBooking)
@@ -67,15 +67,14 @@ class MainFrame():
                             height=30,
                             font=("", 16, "bold"),
                             corner_radius=4)  
-        self.__loadListingsBooking()
 
         self.ticketTypeLabel = ctk.CTkLabel(master=self.formFrame, text="Ticket Type:", font=("Roboto", 15)) 
-        self.ticketType = ctk.StringVar()
+        self.ticketType = ctk.StringVar(value="")
         self.lowHallTickets = ctk.CTkRadioButton(master=self.formFrame, text="Lower Hall", variable=self.ticketType, value="Lower")    
         self.upperHallTickets = ctk.CTkRadioButton(master=self.formFrame, text="Upper Hall", variable=self.ticketType, value="Upper") 
         self.vipHallTickets = ctk.CTkRadioButton(master=self.formFrame, text="VIP", variable=self.ticketType, value="VIP")                                     
         self.totalPriceLabel = ctk.CTkLabel(master=self.formFrame, text="Total Price:", font=("Roboto", 15)) 
-        self.totalPrice = ctk.CTkLabel(master=self.formFrame, text="£0", font=("Roboto", 18)) 
+        self.totalPrice = ctk.CTkLabel(master=self.formFrame, text=" ", font=("Roboto", 18)) 
 
         self.numberOfTicketsLabel = ctk.CTkLabel(master=self.formFrame, text="Number of Tickets:", font=("Roboto", 15))    
         self.numberOfTickets = ctk.CTkOptionMenu(master=self.formFrame, 
@@ -85,16 +84,20 @@ class MainFrame():
                             font=("", 16, "bold"),
                             corner_radius=4)
 
+        self.selectedCinema = ctk.StringVar(value=currentCinema.getLocation())
         cinemas = [cinema.get("location") for cinema in db.cinemas.find({})]  
         self.cinemasLabel = ctk.CTkLabel(master=self.formFrame, text="Cinema:", font=("Roboto", 15))    
         self.cinemasMenu = ctk.CTkOptionMenu(master=self.formFrame, 
                             values=cinemas,
+                            variable=self.selectedCinema,
                             width=200,
                             height=30,
                             font=("", 16, "bold"),
-                            corner_radius=4)
+                            corner_radius=4,
+                            command=self.__loadListingsBooking)
+        self.__loadListingsBooking()
 
-        self.availabilityLabel = ctk.CTkLabel(master=self.formFrame, text="Availability:", font=("Roboto", 15)) 
+        self.availabilityLabel = ctk.CTkLabel(master=self.formFrame, text="Available Seats:", font=("Roboto", 15)) 
         self.availability = ctk.CTkLabel(master=self.formFrame, text=" ", font=("Roboto", 18)) 
 
         self.makeBookingButton = ctk.CTkButton(master=self.formFrame, 
@@ -102,7 +105,16 @@ class MainFrame():
                                     width=200,
                                     height=40,
                                     font=("", 16, "bold"),
-                                    corner_radius=7)
+                                    corner_radius=7,
+                                    command=self.__makeBooking)
+
+        self.checkAvailAndPriceButton = ctk.CTkButton(master=self.formFrame, 
+                                    text="Check Availability and Price",
+                                    width=200,
+                                    height=40,
+                                    font=("", 16, "bold"),
+                                    corner_radius=7,
+                                    command=self.__checkAvailabilityAndPrice)
 
         self.formFrame.pack(pady=20, padx=20, fill="both", expand=True)
 
@@ -111,29 +123,31 @@ class MainFrame():
         self.calendarLabel.place(relx=.38, rely=.3, anchor="center")
         self.calendar.place(relx=.5, rely=.3, anchor="center")
 
-        self.selectFilmLabel.place(relx=.35, rely=.45, anchor="center")
-        self.selectFilm.place(relx=.5, rely=.45, anchor="center")
-
-        self.selectShowingLabel.place(relx=.35, rely=.5, anchor="center")
-        self.selectShowing.place(relx=.5, rely=.5, anchor="center")
-
-        self.ticketTypeLabel.place(relx=.3, rely=.55, anchor="center")
-        self.lowHallTickets.place(relx=.425, rely=.55, anchor="center")
-        self.upperHallTickets.place(relx=.5, rely=.55, anchor="center")
-        self.vipHallTickets.place(relx=.575, rely=.55, anchor="center")
-
-        self.numberOfTicketsLabel.place(relx=.35, rely=.6, anchor="center")
-        self.numberOfTickets.place(relx=.5, rely=.6, anchor="center")
-
         if(self.loggedInUser.__class__.__name__ == "Manager" or self.loggedInUser.__class__.__name__ == "Admin"):
-            self.cinemasLabel.place(relx=.35, rely=.65, anchor="center")
-            self.cinemasMenu.place(relx=.5, rely=.65, anchor="center")
+            self.cinemasLabel.place(relx=.35, rely=.45, anchor="center")
+            self.cinemasMenu.place(relx=.5, rely=.45, anchor="center")
+
+
+        self.selectFilmLabel.place(relx=.35, rely=.5, anchor="center")
+        self.selectFilm.place(relx=.5, rely=.5, anchor="center")
+
+        self.selectShowingLabel.place(relx=.35, rely=.55, anchor="center")
+        self.selectShowing.place(relx=.5, rely=.55, anchor="center")
+
+        self.ticketTypeLabel.place(relx=.3, rely=.6, anchor="center")
+        self.lowHallTickets.place(relx=.425, rely=.6, anchor="center")
+        self.upperHallTickets.place(relx=.5, rely=.6, anchor="center")
+        self.vipHallTickets.place(relx=.575, rely=.6, anchor="center")
+
+        self.numberOfTicketsLabel.place(relx=.35, rely=.65, anchor="center")
+        self.numberOfTickets.place(relx=.5, rely=.65, anchor="center")
 
         self.totalPriceLabel.place(relx=.4, rely=.7, anchor="center")
         self.totalPrice.place(relx=.5, rely=.7, anchor="center")
         self.availabilityLabel.place(relx=.4, rely=.75, anchor="center")
         self.availability.place(relx=.5, rely=.75, anchor="center")
-        self.makeBookingButton.place(relx=.5, rely=.8, anchor="center")
+        self.checkAvailAndPriceButton.place(relx=.4, rely=.8, anchor="center")
+        self.makeBookingButton.place(relx=.6, rely=.8, anchor="center")
 
         # Navigation Buttons
         self.bookingButton = ctk.CTkButton(master=self.buttonsFrame, 
@@ -387,7 +401,100 @@ class MainFrame():
         
         self.addShowButton.place(relx=.5, rely=.45, anchor="center")
     
-    
+
+    def __checkAvailabilityAndPrice(self):
+
+        from main import db, currentCinema, Booking, Show, AvailabilityChecker, City, Cinema, ERROR_COLOUR, SUCCESS_COLOUR
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.selectFilm.get() == ""):
+            self.error = ctk.CTkLabel(master=self.formFrame, text="Select a film", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return -1 
+
+        if(self.selectShowing.get() == ""):
+            self.error = ctk.CTkLabel(master=self.formFrame, text="Select a show", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return -1
+        
+        if(self.ticketType.get() == ""):
+            self.error = ctk.CTkLabel(master=self.formFrame, text="Select a Ticket Type", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return -1
+
+        cinema = None
+        if(self.loggedInUser.__class__.__name__ == "BookingStaff"):
+            cinema = currentCinema
+        else:
+            cinemaLocation = self.cinemasMenu.get()
+            cinemaDB = db.cinemas.find_one({"location": cinemaLocation})
+
+            cinemaID = None
+            cityID = None
+            city = None
+            if(cinemaDB != None):
+                cinemaID = cinemaDB.get("_id")
+                cityDB = db.cities.find({"cinemas": cinemaID})
+                if(cityDB != None):
+                    cityDB = list(cityDB)[0]
+                    city = City(cityDB.get("name"), cityDB.get("morning_price"), cityDB.get("afternoon_price"), cityDB.get("evening_price"))
+            
+            cinema = Cinema(cinemaID, city, cinemaLocation)
+
+
+        # Get the number of seats available
+        bookingType = self.ticketType.get()
+        showID = self.availableListings[self.selectFilm.get()][self.availableShows.index(self.selectShowing.get())]
+        showDB = db.shows.find_one({"_id": showID})
+        seatsAvailable = []
+        showTime = ""
+        if(showDB != None):
+            seatsAvailable = showDB.get("available_seats") 
+            showTime = showDB.get("show_time").split(":")[0].lstrip("0")
+        
+        if(showTime == ""):
+            showTime = 0
+
+        show = Show(showID, "", "", int(showTime), seatsAvailable, "")
+        numOfSeatsAvailable = AvailabilityChecker(bookingType, show).checkAvailability()
+
+        self.availability.configure(text=str(numOfSeatsAvailable))
+
+        # Get the price
+        numberOfTickets = self.numberOfTickets.get()
+
+        self.currentBooking = Booking(0, int(numberOfTickets), show, cinema, bookingType, datetime.date.today().strftime('%d-%m-%Y'))
+        price = self.currentBooking.calculateTotal()
+
+        self.totalPrice.configure(text=f"£{price:.1f}")
+        return numOfSeatsAvailable
+
+
+    def __makeBooking(self):
+
+        from main import SUCCESS_COLOUR, ERROR_COLOUR
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget() 
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.__checkAvailabilityAndPrice() == -1):
+            return
+
+        if(self.__checkAvailabilityAndPrice() < int(self.numberOfTickets.get())):
+            self.error = ctk.CTkLabel(master=self.formFrame, text="Not enough seats available", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return
+
+        self.currentBooking.getCinema().makeBooking(self.currentBooking)
+
+        self.successMessage = ctk.CTkLabel(master=self.formFrame, text="Booking Successful", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+        self.successMessage.pack()          
+
     def __addShow(self):
         from main import currentCinema, ERROR_COLOUR, SUCCESS_COLOUR, db
         
@@ -494,7 +601,7 @@ class MainFrame():
 
     def __loadListingsBooking(self, event=None):
 
-        from main import db
+        from main import db, currentCinema
 
         showSearchDate = self.calendar.selection_get()
         if(showSearchDate != None):
@@ -504,7 +611,12 @@ class MainFrame():
 
         shows = []
         listingsDB = []
+        cinemaDB = db.cinemas.find_one({"location": self.selectedCinema.get()})
         for show in showsDB:
+            showScreen = show.get("screen_number")
+            if(cinemaDB != None):
+                if(showScreen not in cinemaDB.get("screens")):
+                    continue
             shows.append(show.get("_id"))
             listingsDB.append(db.listings.find_one({"shows": show.get("_id")}).get("film_name"))
         
@@ -515,8 +627,9 @@ class MainFrame():
 
         listingValues = list(self.availableListings.keys())
         if(listingValues == []):
-            listingValues = ["Empty"]
+            listingValues = [""]
         self.selectFilm.configure(values=listingValues)
+        self.selectShowing.configure(values=[""])
         self.selectFilm.set(value="")
         self.selectShowing.set(value="")
 
