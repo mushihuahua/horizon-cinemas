@@ -671,7 +671,7 @@ class LoginFrame():
                      
                     global mainView, adminView, managerView, accountView, menu
                     # MenuFrame is the navbar
-                    menu = MenuFrame(app)
+                    menu = MenuFrame(app, loggedInUser)
                     mainView = MainFrame(app, loggedInUser)
                     adminView = AdminFrame(app)
                     managerView = ManagerFrame(app, loggedInUser)
@@ -720,10 +720,10 @@ class LoginFrame():
             self.error.pack()
 
 class MenuFrame():
-    def __init__(self, container):
+    def __init__(self, container, loggedInUser):
 
         self.container = container
-
+        
         self.menuFrame = ctk.CTkFrame(master=container,
 
                                 width=app.width, 
@@ -789,8 +789,11 @@ class MenuFrame():
         # Put them on the GUI Pack inline and append them to a buttons array
 
         self.bookingStaffButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.adminButton.pack(side=tk.LEFT, padx=15, pady=10)
-        self.managerButton.pack(side=tk.LEFT, padx=15, pady=10)
+        employeeType = loggedInUser.__class__.__name__
+        if(employeeType == "Admin" or employeeType == "Manager"):
+            self.adminButton.pack(side=tk.LEFT, padx=15, pady=10)
+        if(employeeType == "Manager"):
+            self.managerButton.pack(side=tk.LEFT, padx=15, pady=10)
         # self.accountButton.pack(side=tk.LEFT, padx=15, pady=10)
 
         self.logoutButton.pack(side=tk.RIGHT, padx=20, pady=10)
