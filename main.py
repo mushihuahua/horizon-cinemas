@@ -102,6 +102,8 @@ class Cinema:
     
     def makeBooking(self, newBooking):
 
+        PaymentSystem().authenticatePayment()
+
         seatIDs = newBooking.getShow().getSeatsAvailable()
         seatNums = []
         ticketType = newBooking.getTicketType()
@@ -127,15 +129,15 @@ class Cinema:
             "cancelled": False,
             "cost": newBooking.getTotal(),
             "tickets": tickets,
+            "show": newBooking.getShow().getID(),
             "cinema": self.getID()
         }
         bookingID = db.bookings.insert_one(bookingDB).inserted_id
         newBooking.setBookingReference(bookingID)
         self.__bookings.append(newBooking)
-    
-    def cancelBooking(self, bookingReference):
-        pass
 
+        return bookingID
+ 
     def addListing(self, listing): 
         dbListing = {
             "film_name": listing.filmName,
@@ -272,25 +274,24 @@ class Listing:
         return False
 
 class Show:
-    def __init__(self, id, listing, date, time, seatsAvailable, screen):
+    def __init__(self, id, date, time, seatsAvailable, screen):
         self.__id = id
-        self.__listing = listing
         self.__date = date
         self.__time = time
         self.__seatsAvailable = seatsAvailable
         self.__screen = screen
         
     def getScreen(self):
-        pass
-
-    def getListing(self):
-        pass
+        return self.__screen
 
     def getDate(self):
-        pass
+        return self.__date
 
     def getTime(self):
         return self.__time
+
+    def getID(self):
+        return self.__id
 
     def getSeatsAvailable(self):
         return self.__seatsAvailable
@@ -300,33 +301,23 @@ class Show:
         db.shows.update_one({"_id": self.__id}, {"$pull": {"available_seats": seatID}})
 
 class Seat:
-    def __init__(self, seatNumber, available=True):
+    def __init__(self, seatNumber):
         self.__seatNumber = seatNumber
-        self.__available = available
-
-    def changeAvailability(self):
-        if(self.__available):
-            self.__available = False
-        else:
-            self.__available = True
-        
-    def getAvailability(self):
-        return self.__available
 
     def getSeatNumber(self):
         return self.__seatNumber
 
 class LowerHallSeat(Seat): 
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class UpperGallerySeat(Seat): 
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class VIPSeat(UpperGallerySeat):
-    def __init__(self, seatNumber, available=True):
-        super().__init__(seatNumber, available)
+    def __init__(self, seatNumber):
+        super().__init__(seatNumber)
 
 class Ticket:
     def __init__(self, seatNo):
@@ -377,14 +368,15 @@ class Receipt:
         pass
 
 class PaymentSystem:
-    pass        
+    
+    def authenticatePayment(self):
+        print("Payment Successful")        
 
 class Screen: 
-    def __init__(self, capacity):
-        self.__capacity = capacity
-        self.__screenNumber = int
-        self.__seatingCapacity = int
-        self.__seats = []
+    def __init__(self, screenNumber, capacity, seats=[]):
+        self.__screenNumber = screenNumber
+        self.__seatingCapacity = capacity
+        self.__seats = seats
         
     def checkVIPAvailability(self):
         pass
@@ -423,14 +415,14 @@ class AvailabilityChecker:
     
 
 class Booking: 
-    def __init__(self, bookingReference, numOfTickets, show, cinema, ticketType, bookingDate):
+    def __init__(self, bookingReference, numOfTickets, show, cinema, ticketType, bookingDate, totalCost=0):
         self.__bookingReference = bookingReference 
         self.__numOfTickets = numOfTickets
         self.__bookingDate = bookingDate
         self.__ticketType = ticketType
         self.__tickets = []
         self.__cancelled = False
-        self.__totalCost = 0
+        self.__totalCost = totalCost
         self.__show = show
         self.__receipt = None
         self.__cinema = cinema 
@@ -439,7 +431,7 @@ class Booking:
         ticketTypeClass = TicketFactory().getTicketType(self.__ticketType)
         pricePercentage = ticketTypeClass("").getPricePercentage()
 
-        self.__totalCost = pricePercentage * self.__numOfTickets * self.__cinema.getCity().getTicketPrice(self.__show.getTime())
+        self.__totalCost = round(pricePercentage * self.__numOfTickets * self.__cinema.getCity().getTicketPrice(self.__show.getTime()), 1)
         return self.__totalCost
 
     def addTicket(self, ticket):
@@ -450,7 +442,7 @@ class Booking:
 
         self.__tickets.append(ticket)
         return db.tickets.insert_one(ticketDB).inserted_id
-    
+
     def getTotal(self):
         return self.__totalCost
 
@@ -482,7 +474,51 @@ class Booking:
         return self.__bookingReference
 
     def cancel(self):
+
+        bookingDB = db.bookings.find_one({"_id": self.__bookingReference})
+        seatsAvailableIDs = self.__show.getSeatsAvailable()
+        seats = self.__show.getScreen().getSeats()
+
+        # Get all the tickets of the selected Booking
+        ticketIDs = []
+        if(bookingDB != None):
+            ticketIDs = bookingDB.get("tickets")
+
+        # Get the available seat numbers
+        seatsAvailable = []
+        for seatID in seatsAvailableIDs:
+            seatsAvailable.append(db.seats.find_one({"_id": seatID}).get("seat_number"))
+
+        # Get the seat numbers associated with the tickets of the selected Booking
+        ticketSeats = []
+        for ticketID in ticketIDs:
+            ticketSeats.append(db.tickets.find_one({"_id": ticketID}).get("seat_number"))
+
+        # Get the IDs of the seats associated with tickets
+        ticketSeatIDs = []
+        for ticketSeat in ticketSeats:
+            for seat in seats:
+                seatDB = db.seats.find_one({"_id": seat})
+                if(seatDB.get("seat_number") == ticketSeat):
+                    ticketSeatIDs.append(seatDB.get("_id"))
+
+        # Insert the seats associated with the tickets back in the available seats array
+        for i in range(len(ticketSeats)):
+            for j in range(len(seatsAvailable)):
+                if(ticketSeats[i][0] == seatsAvailable[j][0]):
+                    if(int(seatsAvailable[j][2:]) > int(ticketSeats[i][2:])):
+                        seatsAvailableIDs.insert(j, ticketSeatIDs[i])
+                        break
+        
+        # Remove tickets from database
+        for ticketID in ticketIDs:
+            db.tickets.delete_one({"_id": ticketID})
+        
+        db.shows.update_one({"_id": self.__show.getID()}, {"$set": {"available_seats": seatsAvailableIDs}})
+        db.bookings.update_one({"_id": self.__bookingReference}, {"$set": {"cancelled": True, "tickets": []}})
+
         self.__cancelled = True
+        return self.__cancelled
 
 
 staffTypes = {

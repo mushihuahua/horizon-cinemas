@@ -21,6 +21,7 @@ class MainFrame():
         self.error = None
         self.successMessage = None
         self.selectedListingID = None
+        self.selectedBookingID = None
         self.showsButtons = []
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=10)
@@ -197,9 +198,6 @@ class MainFrame():
 
         self.selectedListing = ctk.StringVar(value="Select Listing")
 
-        if(len(self.listingsList) == 0):
-            self.listingsList = ["Empty"]
-
         self.listingComboBox = ctk.CTkComboBox(master=self.viewListingsFrame, font=("", 15), values=self.listingsList, variable=self.selectedListing, command = self.__viewListings, height=40, width=350)
         self.listingComboBox.pack(padx=20, pady=20)
 
@@ -231,7 +229,7 @@ class MainFrame():
         self.viewBookingsLabel = ctk.CTkLabel(master=self.viewBookingsFrame, text="View Bookings", font=("Roboto", 32, "bold"))
         self.viewBookingsLabel.pack(pady=40, padx=30)
         
-        self.bookings = list(db.bookings.find())
+        self.bookings = list(db.bookings.find({"cancelled": False}))
         self.bookingsList = [str(booking.get("_id")) for booking in self.bookings]
         
         self.selectedBooking = ctk.StringVar(value="Select Booking")
@@ -263,7 +261,8 @@ class MainFrame():
                         height=52, 
                         font=("Roboto", 20),
                         fg_color="#bb86fc",
-                        hover_color="#9f54fb")
+                        hover_color="#9f54fb",
+                        command=self.__cancelBooking)
         
         self.cancelButton.pack(pady=10)
 
@@ -460,7 +459,7 @@ class MainFrame():
         if(showTime == ""):
             showTime = 0
 
-        show = Show(showID, "", "", int(showTime), seatsAvailable, "")
+        show = Show(showID, "", int(showTime), seatsAvailable, "")
         numOfSeatsAvailable = AvailabilityChecker(bookingType, show).checkAvailability()
 
         self.availability.configure(text=str(numOfSeatsAvailable))
@@ -478,8 +477,8 @@ class MainFrame():
         
         from main import db
         
-        self.choice = choice
-        selectedBooking = db.bookings.find_one({"_id" : ObjectId(self.choice)})
+        self.selectedBookingID = choice
+        selectedBooking = db.bookings.find_one({"_id" : ObjectId(choice)})
         if(selectedBooking != None):
             self.bookingRef.configure(text=("Booking Reference: " + str(selectedBooking.get("_id"))))
             self.bookingDate.configure(text=("Booking Date: " + str(selectedBooking.get("booking_date"))))
@@ -490,6 +489,7 @@ class MainFrame():
     def __makeBooking(self):
 
         from main import SUCCESS_COLOUR, ERROR_COLOUR
+
 
         if(self.successMessage != None):
             self.successMessage.pack_forget() 
@@ -505,10 +505,59 @@ class MainFrame():
             self.error.pack()
             return
 
-        self.currentBooking.getCinema().makeBooking(self.currentBooking)
+        bookingID = self.currentBooking.getCinema().makeBooking(self.currentBooking)
+        self.bookingsList.append(str(bookingID))
+        self.bookingComboBox.configure(values=self.bookingsList)
 
         self.successMessage = ctk.CTkLabel(master=self.formFrame, text="Booking Successful", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
         self.successMessage.pack()          
+
+    def __cancelBooking(self):
+
+        from main import ERROR_COLOUR, SUCCESS_COLOUR, Booking, Show, Screen, db
+
+        if(self.error != None):
+            self.error.pack_forget()
+
+        if(self.successMessage != None):
+            self.successMessage.pack_forget() 
+
+        if(self.selectedBookingID == None):
+            self.error = ctk.CTkLabel(master=self.viewBookingsFrame, text="Select a Booking", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return 
+
+        booking = None
+        show = None
+        selectedBooking = db.bookings.find_one({"_id" : ObjectId(self.selectedBookingID)})
+        if(selectedBooking != None):
+            showID = selectedBooking.get("show")
+            showDB = db.shows.find_one({"_id": showID})
+            if(showDB != None):
+                screenID = showDB.get("screen_number")
+                screenDB = db.screens.find_one({"_id": screenID})
+                if(screenDB != None):
+                    screen = Screen(screenDB.get("_id"), len(screenDB.get("seats")), screenDB.get("seats"))
+                    show = Show(showID, showDB.get("show_date"), showDB.get("show_time"), showDB.get("available_seats"), screen)
+        
+                    booking = Booking(selectedBooking.get("_id"), selectedBooking.get("num_of_tickets"), show, "", "", selectedBooking.get("booking_date"), selectedBooking.get("cost"))
+
+        if(booking == None):
+            self.error = ctk.CTkLabel(master=self.viewBookingsFrame, text="Something Went Wrong", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return     
+
+        success = booking.cancel()    
+
+        if(success):    
+            self.successMessage = ctk.CTkLabel(master=self.viewBookingsFrame, text="Booking Canceled Successfully", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
+            self.successMessage.pack()  
+
+            self.bookingsList.remove(self.selectedBookingID)
+            self.bookingComboBox.configure(values=self.bookingsList)
+            self.selectedBookingID = None
+
+
 
     def __addShow(self):
         from main import currentCinema, ERROR_COLOUR, SUCCESS_COLOUR, db
