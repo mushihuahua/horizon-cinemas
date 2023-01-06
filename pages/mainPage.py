@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkcalendar import *
 import datetime
+from bson import ObjectId
 
 # Booking View
 class MainFrame():
@@ -199,7 +200,7 @@ class MainFrame():
         if(len(self.listingsList) == 0):
             self.listingsList = ["Empty"]
 
-        self.listingComboBox = ctk.CTkComboBox(master=self.viewListingsFrame, font=("", 15), values=self.listingsList, variable=self.selectedListing, command=self.__viewListings, height=40, width=350)
+        self.listingComboBox = ctk.CTkComboBox(master=self.viewListingsFrame, font=("", 15), values=self.listingsList, variable=self.selectedListing, command = self.__viewListings, height=40, width=350)
         self.listingComboBox.pack(padx=20, pady=20)
 
         self.filmNameLabel = ctk.CTkLabel(master=self.viewListingsFrame, text="Film Name: ", font=("", 18))
@@ -230,13 +231,15 @@ class MainFrame():
         self.viewBookingsLabel = ctk.CTkLabel(master=self.viewBookingsFrame, text="View Bookings", font=("Roboto", 32, "bold"))
         self.viewBookingsLabel.pack(pady=40, padx=30)
         
-        self.bookings = db.bookings.find()
-        self.bookingsList = [listing.get("film_name") for listing in self.listings]
-
+        self.bookings = list(db.bookings.find())
+        self.bookingsList = [str(booking.get("_id")) for booking in self.bookings]
+        
+        self.selectedBooking = ctk.StringVar(value="Select Booking")
+        
         if(len(list(self.bookings)) == 0):
             self.bookingsList = ["Empty"]
 
-        self.bookingComboBox = ctk.CTkComboBox(master=self.viewBookingsFrame, font=("", 15), values=self.bookingsList, height=40, width=350)
+        self.bookingComboBox = ctk.CTkComboBox(master=self.viewBookingsFrame, values = self.bookingsList, command = self.__viewBooking,  variable=self.selectedBooking, font=("", 15), height=40, width=350)
         self.bookingComboBox.pack(padx=20, pady=20)
 
         self.bookingRef = ctk.CTkLabel(master=self.viewBookingsFrame, text="Booking Reference: ", font=("", 18))
@@ -471,7 +474,19 @@ class MainFrame():
         self.totalPrice.configure(text=f"£{price:.1f}")
         return numOfSeatsAvailable
 
-
+    def __viewBooking(self, choice):
+        
+        from main import db
+        
+        self.choice = choice
+        selectedBooking = db.bookings.find_one({"_id" : ObjectId(self.choice)})
+        if(selectedBooking != None):
+            self.bookingRef.configure(text=("Booking Reference: " + str(selectedBooking.get("_id"))))
+            self.bookingDate.configure(text=("Booking Date: " + str(selectedBooking.get("booking_date"))))
+            self.NoOfTickets.configure(text=("Number of Tickets: " + str(selectedBooking.get("num_of_tickets"))))
+            self.cancelled.configure(text=("Cancelled: " + str(selectedBooking.get("cancelled"))))
+            self.totalCost.configure(text=("Total Cost: £" + str(selectedBooking.get("cost"))))
+    
     def __makeBooking(self):
 
         from main import SUCCESS_COLOUR, ERROR_COLOUR
