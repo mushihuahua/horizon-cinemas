@@ -705,7 +705,15 @@ class LoginFrame():
 
             # Try to find an entry in db with employeeID and check if it exists
             result = db.staff.find_one({"_id": employeeID})
+            
+
             if(result != None):
+
+                # Check if that employee is employed at the current cinema
+                if(result.get("cinema") != currentCinema.getID()):
+                    self.error = ctk.CTkLabel(master=self.loginFrame, text="This employee is not employed at this cinema", text_color=ERROR_COLOUR, font=("Roboto", 18))
+                    self.error.pack()
+                    return
 
                 # Get the password hash related to that employee ID if it exists and check if the password entered is correct
                 hash = result.get("password_hash")
