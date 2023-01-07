@@ -1,3 +1,4 @@
+import json
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from bson.objectid import ObjectId
@@ -87,16 +88,61 @@ class Cinema:
         pass
     
     def makeBooking(self, newBooking):
-        pass
-    
-    def cancelBooking(self, bookingReference):
-        pass
 
+        PaymentSystem().authenticatePayment()
+
+        seatIDs = newBooking.getShow().getSeatsAvailable()
+        seatNums = []
+        ticketType = newBooking.getTicketType()
+        ticketTypeClass = TicketFactory().getTicketType(ticketType)
+        for seatID in seatIDs:
+            seat = db.seats.find_one({"_id": seatID})
+            if(seat != None):
+                seatNums.append(seat.get("seat_number"))
+        
+        tickets = []
+        numberOfTickets = newBooking.getNumberOfTickets()
+        for c, seat in enumerate(seatNums):
+            if(seat[0] == ticketType[0]):
+                for i in range(numberOfTickets):          
+                    tickets.append(newBooking.addTicket(ticketTypeClass(seatNums[c+i])))
+                    newBooking.getShow().removeSeat(seatIDs[c])
+                break
+
+
+        bookingDB = {
+            "booking_date": newBooking.getBookingDate(),
+            "num_of_tickets": newBooking.getNumberOfTickets(),
+            "cancelled": False,
+            "cost": newBooking.getTotal(),
+            "tickets": tickets,
+            "show": newBooking.getShow().getID(),
+            "cinema": self.getID()
+        }
+        bookingID = db.bookings.insert_one(bookingDB).inserted_id
+        newBooking.setBookingReference(bookingID)
+        self.__bookings.append(newBooking)
+
+        return bookingID
+ 
     def addListing(self, listing): 
-        pass
+        dbListing = {
+            "film_name": listing.filmName,
+            "film_genre": listing.filmGenre,
+            "film_age": listing.filmAge,
+            "film_rating": listing.filmRating,
+            "film_description": listing.filmDescription,
+            "cast": listing.cast,
+            "film_length": listing.filmLength,
+            "shows": listing.shows
+        }
 
-    def removeListing(self, listing):
-        pass
+        self.__listings.append(listing)
+        return db.listings.insert_one(dbListing).acknowledged
+
+    def removeListing(self, listingID):
+
+        return db.listings.delete_one({"_id": listingID}).acknowledged
 
     def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
         newEmployee = {
@@ -147,6 +193,9 @@ class Cinema:
 
     def getCity(self):
         return self.__city
+    
+    def getScreens(self):
+        return self.__screens    
 
     def getLocation(self):
         return self.__location
@@ -224,55 +273,91 @@ class City:
         pass
 
 class Listing: 
-    def __init__(self, filmName, filmDate, filmDescription, actorDetails,filmGenre,filmAge, filmRating):
-        self.__filmName = filmName
-        self.__filmDate = filmDate
-        self.__filmDescription = filmDescription
-        self.__actorDetails = actorDetails
-        self.__filmGenre = filmGenre
-        self.__filmAge = filmAge
-        self.__filmRating = filmRating
- 
-    def getListingInformation(self):
-        pass
+    def __init__(self, id, filmName, filmLength, filmDescription, cast, filmGenre, filmAge, filmRating, shows=[]):
+        self.id = id
+        self.filmName = filmName
+        self.filmLength = filmLength
+        self.filmDescription = filmDescription
+        self.cast = cast
+        self.filmGenre = filmGenre
+        self.filmAge = filmAge
+        self.filmRating = filmRating
+        self.shows = shows
 
-    def changeListingInformation(self):
-        pass
-    
+    def changeListingInformation(self, listingID, listing):
+        
+        return db.listings.update_one({"_id":listingID}, {"$set":{"film_name":listing.filmName,
+                                                                "film_genre":listing.filmGenre,
+                                                                "film_age":listing.filmAge,
+                                                                "film_rating":listing.filmRating,
+                                                                "film_description":listing.filmDescription,
+                                                                "cast":listing.cast,
+                                                                "film_length":listing.filmLength,}}).acknowledged
+
     def getShows(self):
-        pass
+        return self.shows
 
-    def getFilmName(self):
-        pass
+    def addShow(self, showDate, showTime, screenID):
 
-    def getFilmDate(self):
-        pass
+        screen = db.screens.find_one({"_id": screenID})
 
-    def addShow(self, show):
-        pass
+        seats = []
+        if(screen != None):
+            seats = screen.get("seats")
 
-    def removeShow(self, show):
-        pass
+        newShow = {
+            "show_date" : showDate, 
+            "show_time" : showTime,
+            "available_seats": seats,
+            "screen_number" : screenID 
+        }
+        addShowID = db.shows.insert_one(newShow).inserted_id
+        db.listings.find_one_and_update({"_id": self.id}, {"$push": {"shows": addShowID}})
 
+        return addShowID
+        
+    def removeShow(self, showID):
+        listingID = 0
+
+        for listing in db.listings.find({}):
+            for show in listing.get("shows"):
+                if(show == ObjectId(showID)):
+                    listingID = listing.get("_id")
+                    break
+
+        db.shows.find_one_and_delete({"_id": ObjectId(showID)})
+        success = db.listings.find_one_and_update({"_id": listingID}, {"$pull": {"shows": ObjectId(showID)}})
+
+        if(success != None):
+            return True
+        return False
 
 class Show:
-    def __init__(self, listing, date, time, screen):
-        self.__listing = listing
+    def __init__(self, id, date, time, seatsAvailable, screen):
+        self.__id = id
         self.__date = date
         self.__time = time
+        self.__seatsAvailable = seatsAvailable
         self.__screen = screen
         
     def getScreen(self):
-        pass
-
-    def getListing(self):
-        pass
+        return self.__screen
 
     def getDate(self):
-        pass
+        return self.__date
 
     def getTime(self):
-        pass
+        return self.__time
+
+    def getID(self):
+        return self.__id
+
+    def getSeatsAvailable(self):
+        return self.__seatsAvailable
+
+    def removeSeat(self, seatID):
+        self.__seatsAvailable.remove(seatID)
+        db.shows.update_one({"_id": self.__id}, {"$pull": {"available_seats": seatID}})
 
 class Seat:
     def __init__(self, seatNumber):
@@ -300,26 +385,39 @@ class Ticket:
     def getPricePercentage(self):
         pass
 
+    def getSeatNumber(self):
+        return self.__seatNo
+
 class LowerHallTicket(Ticket): 
     def getPricePercentage(self):
         return 1
+    
+    def getTicketType(self):
+        return "Lower"
 
 class UpperGalleryTicket(Ticket): 
     def getPricePercentage(self):
         return 1.2 
 
+    def getTicketType(self):
+        return "Upper"
+
 class VIPTicket(UpperGalleryTicket):
     def getPricePercentage(self):
         return 1.2 * 1.2   
 
+    def getTicketType(self):
+        return "VIP"
+
 class TicketFactory: 
     def getTicketType(self, ticketType):
-        if(ticketType == "Lower Hall"):
+        if(ticketType == "Lower"):
             return LowerHallTicket
-        elif(ticketType == "Upper Gallery"):
+        elif(ticketType == "Upper"):
             return UpperGalleryTicket
         elif(ticketType == "VIP"):
             return VIPTicket
+        return Ticket
 
 class Receipt:
     def __init__(self, booking):
@@ -328,13 +426,10 @@ class Receipt:
     def displayReceipt(self):
         pass
 
-class AvailabilitvChecker:
-    def __init__(self, type, screen):
-        self.__type = type
-        self.__screen = screen
-
 class PaymentSystem:
-    pass        
+    
+    def authenticatePayment(self):
+        print("Payment Successful")        
 
 class Screen: 
     def __init__(self, screenNumber, capacity=0, seats=[]):
@@ -367,43 +462,68 @@ class Screen:
         return self.__seatingCapacity
 
 class AvailabilityChecker:
-    def __init__(self, seatType, screen):
+    def __init__(self, seatType, show):
         self.seatType = seatType
-        self.screen = screen
+        self.show = show
     
     def checkAvailability(self):
-        pass
+        seatNums = []
+        for seatID in self.show.getSeatsAvailable():
+            seat = db.seats.find_one({"_id": seatID})
+            if(seat != None):
+                seatNums.append(seat.get("seat_number"))
+
+        numOfSeatsAvailable = 0
+        for seatNum in seatNums:
+            if(self.seatType[0] == seatNum[0]):
+                numOfSeatsAvailable += 1
+        
+        return numOfSeatsAvailable
+    
 
 class Booking: 
-    def __init__(self, show, cinema, screen, ticketType, bookingDate):
-        self.__bookingReference = int # Randomly Generated
+    def __init__(self, bookingReference, numOfTickets, show, cinema, ticketType, bookingDate, totalCost=0):
+        self.__bookingReference = bookingReference 
+        self.__numOfTickets = numOfTickets
         self.__bookingDate = bookingDate
         self.__ticketType = ticketType
         self.__tickets = []
         self.__cancelled = False
-        self.__totalCost = 0
+        self.__totalCost = totalCost
         self.__show = show
-        self.__screen = screen
         self.__receipt = None
         self.__cinema = cinema 
 
     def calculateTotal(self):
-        pass
+        ticketTypeClass = TicketFactory().getTicketType(self.__ticketType)
+        pricePercentage = ticketTypeClass("").getPricePercentage()
 
-    def addTicket(self):
-        pass
-    
-    def getTotal(self):
+        self.__totalCost = round(pricePercentage * self.__numOfTickets * self.__cinema.getCity().getTicketPrice(self.__show.getTime()), 1)
         return self.__totalCost
 
-    def getScreen(self):
-        return self.__screen
+    def addTicket(self, ticket):
+        ticketDB = {
+            "seat_number": ticket.getSeatNumber(),
+            "ticket_type": ticket.getTicketType()
+        }
+
+        self.__tickets.append(ticket)
+        return db.tickets.insert_one(ticketDB).inserted_id
+
+    def getTotal(self):
+        return self.__totalCost
 
     def getCinema(self):
         return self.__cinema
 
+    def getShow(self):
+        return self.__show
+
     def getNumberOfTickets(self):
-        return len(self.__tickets)
+        return self.__numOfTickets
+
+    def getBookingDate(self):
+        return self.__bookingDate
 
     def generateReceipt(self):
         self.__receipt = Receipt(self)
@@ -411,11 +531,61 @@ class Booking:
     def printReceipt(self):
         pass
 
+    def getTicketType(self):
+        return self.__ticketType
+
+    def setBookingReference(self, ref):
+        self.__bookingReference = ref
+
     def getBookingReference(self):
         return self.__bookingReference
 
     def cancel(self):
+
+        bookingDB = db.bookings.find_one({"_id": self.__bookingReference})
+        seatsAvailableIDs = self.__show.getSeatsAvailable()
+        seats = self.__show.getScreen().getSeats()
+
+        # Get all the tickets of the selected Booking
+        ticketIDs = []
+        if(bookingDB != None):
+            ticketIDs = bookingDB.get("tickets")
+
+        # Get the available seat numbers
+        seatsAvailable = []
+        for seatID in seatsAvailableIDs:
+            seatsAvailable.append(db.seats.find_one({"_id": seatID}).get("seat_number"))
+
+        # Get the seat numbers associated with the tickets of the selected Booking
+        ticketSeats = []
+        for ticketID in ticketIDs:
+            ticketSeats.append(db.tickets.find_one({"_id": ticketID}).get("seat_number"))
+
+        # Get the IDs of the seats associated with tickets
+        ticketSeatIDs = []
+        for ticketSeat in ticketSeats:
+            for seat in seats:
+                seatDB = db.seats.find_one({"_id": seat})
+                if(seatDB.get("seat_number") == ticketSeat):
+                    ticketSeatIDs.append(seatDB.get("_id"))
+
+        # Insert the seats associated with the tickets back in the available seats array
+        for i in range(len(ticketSeats)):
+            for j in range(len(seatsAvailable)):
+                if(ticketSeats[i][0] == seatsAvailable[j][0]):
+                    if(int(seatsAvailable[j][2:]) > int(ticketSeats[i][2:])):
+                        seatsAvailableIDs.insert(j, ticketSeatIDs[i])
+                        break
+        
+        # Remove tickets from database
+        for ticketID in ticketIDs:
+            db.tickets.delete_one({"_id": ticketID})
+        
+        db.shows.update_one({"_id": self.__show.getID()}, {"$set": {"available_seats": seatsAvailableIDs}})
+        db.bookings.update_one({"_id": self.__bookingReference}, {"$set": {"cancelled": True, "tickets": []}})
+
         self.__cancelled = True
+        return self.__cancelled
 
 
 staffTypes = {
@@ -427,10 +597,11 @@ staffTypes = {
 cityContainer = CityContainer()
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
-cinema  = db.cinemas.find_one({"_id": ObjectId("63a22d895cbf5a11ca1f710f")})
+cinema  = db.cinemas.find_one({"_id": ObjectId("63b34317b9cf1c1c47ef12a8")})
 currentCinema = None
+
 if(cinema != None):
-    currentCinema = Cinema(ObjectId("63a22d895cbf5a11ca1f710f"), currentCity, cinema.get("location"))
+    currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"), screens=cinema.get("screens"))
 
 class App(ctk.CTk):
 
@@ -555,8 +726,8 @@ class LoginFrame():
                     from pages.accountPage import AccountFrame
                      
                     global mainView, adminView, managerView, accountView, menu
-                    menu = MenuFrame(app)
-                    mainView = MainFrame(app)
+                    menu = MenuFrame(app, loggedInUser)
+                    mainView = MainFrame(app, loggedInUser)
                     adminView = AdminFrame(app, loggedInUser)
                     managerView = ManagerFrame(app, loggedInUser)
                     accountView = AccountFrame(app)
@@ -598,7 +769,7 @@ class LoginFrame():
             self.error.pack()
 
 class MenuFrame():
-    def __init__(self, container):
+    def __init__(self, container, loggedInUser):
 
         self.container = container
 
@@ -640,16 +811,16 @@ class MenuFrame():
                                     hover_color="#9f54fb",
                                     command=lambda: container.switchFrame(managerView.frame, self.managerButton))
 
-        self.accountButton = ctk.CTkButton(master=self.menuFrame, 
-                                    text="Account",
-                                    width=250,
-                                    height=75,
-                                    font=("", 16, "bold"),
-                                    corner_radius=7,
-                                    fg_color="#bb86fc",
-                                    hover_color="#9f54fb",
-                                    command=lambda: container.switchFrame(accountView.frame, self.accountButton))
-        
+        # self.accountButton = ctk.CTkButton(master=self.menuFrame, 
+        #                             text="Account",
+        #                             width=250,
+        #                             height=75,
+        #                             font=("", 16, "bold"),
+        #                             corner_radius=7,
+        #                             fg_color="#bb86fc",
+        #                             hover_color="#9f54fb",
+        #                             command=lambda: container.switchFrame(accountView.frame, self.accountButton))
+
         self.logoutButton = ctk.CTkButton(master=self.menuFrame, 
                             text="Logout",
                             width=150,
@@ -662,16 +833,21 @@ class MenuFrame():
                             border_width=1,
                             command=self.__logout)
 
-        # Put them on the GUI Grid inline and append them to a buttons array
-        self.bookingStaffButton.place(relx=.1, rely=.5, anchor="center")
-        self.adminButton.place(relx=.25, rely=.5, anchor="center")
-        self.managerButton.place(relx=.4, rely=.5, anchor="center")
-        self.accountButton.place(relx=.55, rely=.5, anchor="center")
-        self.logoutButton.place(relx=.95, rely=.5, anchor="center")
+        # Put them on the GUI Pack inline and append them to a buttons array
+
+        self.bookingStaffButton.pack(side=tk.LEFT, padx=15, pady=10)
+        employeeType = loggedInUser.__class__.__name__
+        if(employeeType == "Admin" or employeeType == "Manager"):
+            self.adminButton.pack(side=tk.LEFT, padx=15, pady=10)
+        if(employeeType == "Manager"):
+            self.managerButton.pack(side=tk.LEFT, padx=15, pady=10)
+        # self.accountButton.pack(side=tk.LEFT, padx=15, pady=10)
+
+        self.logoutButton.pack(side=tk.RIGHT, padx=20, pady=10)
         container.buttons.append(self.bookingStaffButton)
         container.buttons.append(self.adminButton)
         container.buttons.append(self.managerButton)
-        container.buttons.append(self.accountButton)
+        # container.buttons.append(self.accountButton)
 
     def __logout(self):
         menu.menuFrame.pack_forget()
