@@ -311,7 +311,7 @@ class Listing:
 
         return addShowID
         
-    def removeShow(self, showID):
+    def removeShow(self, showID, screenID):
         listingID = 0
 
         for listing in db.listings.find({}):
@@ -321,7 +321,8 @@ class Listing:
                     break
 
         db.shows.find_one_and_delete({"_id": ObjectId(showID)})
-        success = db.listings.find_one_and_update({"_id": listingID}, {"$pull": {"shows": ObjectId(showID)}})
+        db.listings.find_one_and_update({"_id": listingID}, {"$pull": {"shows": ObjectId(showID)}})
+        success = db.screens.find_one_and_update({"_id": screenID}, {"$pull": {"shows": ObjectId(showID)}})
 
         if(success != None):
             return True

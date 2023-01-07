@@ -649,7 +649,7 @@ class MainFrame():
             return              
         
     def __removeShow(self):
-        from main import SUCCESS_COLOUR, ERROR_COLOUR
+        from main import SUCCESS_COLOUR, ERROR_COLOUR, currentCinema
 
         if(self.error != None):
             self.error.pack_forget()
@@ -657,8 +657,16 @@ class MainFrame():
         if(self.successMessage != None):
             self.successMessage.pack_forget() 
 
+        # Get the id of the screen selected
+        selectedScreenID = currentCinema.getScreens()[self.selectionScreensListing.index(self.screenSelectedListing.get())]
+
         if(self.selectedListingID == None):
-            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a listing", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a Listing", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return   
+
+        if(selectedScreenID == None):
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a Screen", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
             return   
 
@@ -669,7 +677,7 @@ class MainFrame():
             self.error.pack()
             return            
 
-        success = self.currentListing.removeShow(showNum)
+        success = self.currentListing.removeShow(showNum, selectedScreenID)
 
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))        
