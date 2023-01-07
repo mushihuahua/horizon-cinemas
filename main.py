@@ -139,6 +139,15 @@ class Cinema:
 
     def removeListing(self, listingID):
 
+        listing = db.listings.find_one({"_id": listingID})
+        shows = []
+        if(listing != None):
+            shows = listing.get("shows")
+
+        for showID in shows:
+            db.shows.find_one_and_delete({"_id": showID})
+            db.screens.update_many({}, {"$pull": {"shows": showID}})
+
         return db.listings.delete_one({"_id": listingID}).acknowledged
 
     def createNewEmployee(self, newFirstName, newLastName, newEmployeeID, newPasswordHash, newType):
@@ -550,20 +559,25 @@ class Booking:
         # Get the available seat numbers
         seatsAvailable = []
         for seatID in seatsAvailableIDs:
-            seatsAvailable.append(db.seats.find_one({"_id": seatID}).get("seat_number"))
+            seat = db.seats.find_one({"_id": seatID})
+            if(seat != None):
+                seatsAvailable.append(seat.get("seat_number"))
 
         # Get the seat numbers associated with the tickets of the selected Booking
         ticketSeats = []
         for ticketID in ticketIDs:
-            ticketSeats.append(db.tickets.find_one({"_id": ticketID}).get("seat_number"))
+            ticket = db.tickets.find_one({"_id": ticketID})
+            if(ticket != None):
+                ticketSeats.append(ticket.get("seat_number"))
 
         # Get the IDs of the seats associated with tickets
         ticketSeatIDs = []
         for ticketSeat in ticketSeats:
             for seat in seats:
                 seatDB = db.seats.find_one({"_id": seat})
-                if(seatDB.get("seat_number") == ticketSeat):
-                    ticketSeatIDs.append(seatDB.get("_id"))
+                if(seatDB != None):
+                    if(seatDB.get("seat_number") == ticketSeat):
+                        ticketSeatIDs.append(seatDB.get("_id"))
 
         # Insert the seats associated with the tickets back in the available seats array
         for i in range(len(ticketSeats)):
@@ -594,8 +608,7 @@ cityContainer = CityContainer()
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
 cinema  = db.cinemas.find_one({"_id": ObjectId("63b34317b9cf1c1c47ef12a8")})
-currentCinema = None
-
+currentCinema = Cinema("", "", "")
 if(cinema != None):
     currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"), screens=cinema.get("screens"))
 

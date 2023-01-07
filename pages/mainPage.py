@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
-from tkcalendar import *
+from tkcalendar import Calendar, DateEntry
 import datetime
 from bson import ObjectId
 
@@ -23,6 +23,7 @@ class MainFrame():
         self.selectedListingID = None
         self.selectedBookingID = None
         self.showsButtons = []
+        self.shows = []
 
         self.frame = ctk.CTkFrame(master=container, corner_radius=10)
         self.formFrame = ctk.CTkFrame(master=self.frame, corner_radius=10)
@@ -244,7 +245,7 @@ class MainFrame():
         self.viewBookingsLabel = ctk.CTkLabel(master=self.viewBookingsFrame, text="View Bookings", font=("Roboto", 32, "bold"))
         self.viewBookingsLabel.pack(pady=40, padx=30)
         
-        self.bookings = list(db.bookings.find({"cancelled": False}))
+        self.bookings = list(db.bookings.find({"$and": [{"cancelled": False}, {"cinema": currentCinema.getID()}]}))
         self.bookingsList = [str(booking.get("_id")) for booking in self.bookings]
         
         self.selectedBooking = ctk.StringVar(value="Select Booking")
@@ -634,7 +635,7 @@ class MainFrame():
             self.error.pack()
             return  
         
-        if(self.loggedInUser.__class__.__name__ == "Manager"):
+        if(self.loggedInUser.__class__.__name__ == "Manager" or self.loggedInUser.__class__.__name__ == "Admin"):
             success = self.currentListing.addShow(showDate.strftime("%d-%m-%Y"), showTime, showScreen)
             
         if(success):
@@ -642,10 +643,6 @@ class MainFrame():
             self.successMessage.pack()
             
             date = showDate.strftime("%d-%m-%Y")
-
-            newShow = ctk.CTkRadioButton(master=self.viewListingsFrame, text=f"Show {numOfShows+1} - {date} {showTime}", value=success, variable=self.selectedShow)
-            self.showsButtons.append(newShow)
-            newShow.pack(fill='x', padx=5, pady=5, side="left")  
             return              
         
     def __removeShow(self):
@@ -675,9 +672,11 @@ class MainFrame():
         if(showNum == ''):
             self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a show", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
-            return            
+            return    
 
-        success = self.currentListing.removeShow(showNum, selectedScreenID)
+        success = False        
+        if(self.loggedInUser.__class__.__name__ == "Manager" or self.loggedInUser.__class__.__name__ == "Admin"):
+            success = self.currentListing.removeShow(showNum, selectedScreenID)
 
         if(success):
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Show Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))        
@@ -705,7 +704,9 @@ class MainFrame():
                 if(showScreen not in cinemaDB.get("screens")):
                     continue
             shows.append(show.get("_id"))
-            listingsDB.append(db.listings.find_one({"shows": show.get("_id")}).get("film_name"))
+            listing = db.listings.find_one({"shows": show.get("_id")})
+            if(listing != None):
+                listingsDB.append(listing.get("film_name"))
         
         self.availableListings = dict((listing, []) for listing in listingsDB)
 
@@ -730,9 +731,11 @@ class MainFrame():
         self.availableShows = []
         i = 1
         for id in self.availableListings[value]:
-            showTime = db.shows.find_one({"_id": id}).get("show_time")
-            self.availableShows.append(f"Show {i} - {showTime}")
-            i+=1
+            show = db.shows.find_one({"_id": id})
+            if(show != None):
+                showTime = show.get("show_time")
+                self.availableShows.append(f"Show {i} - {showTime}")
+                i+=1
 
         self.selectShowing.configure(values=self.availableShows)
         self.selectShowing.set(value="")
@@ -952,7 +955,7 @@ class MainFrame():
             self.listingsList.append(filmName)
             self.listingComboBox.configure(values=self.listingsList)
 
-    def __viewListings(self, choice):
+    def __viewListings(self, choice=None):
         
         from main import db, Listing
 
@@ -981,7 +984,12 @@ class MainFrame():
         if(self.selectedListing.get() == "Select Listing"):
             self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a Listing to view shows", text_color=ERROR_COLOUR, font=("Roboto", 18))
             self.error.pack()
-            return            
+            return           
+
+        if(self.screenSelectedListing.get() == "Select a Screen"):
+            self.error = ctk.CTkLabel(master=self.viewListingsFrame, text="Select a Screen", text_color=ERROR_COLOUR, font=("Roboto", 18))
+            self.error.pack()
+            return                
 
         # Get the id of the screen selected
         selectedScreenID = currentCinema.getScreens()[self.selectionScreensListing.index(self.screenSelectedListing.get())]
@@ -992,12 +1000,15 @@ class MainFrame():
         if(screen != None):
             self.shows = screen.get("shows")
         
-        # Get all the shows associated with the listing and screen selected
         listingShows = []
-        for show in self.shows:
-            listingID = db.listings.find_one({"shows": show}).get("_id")
-            if(listingID == self.selectedListingID):
-                listingShows.append(show)
+        if(self.shows != None):
+            # Get all the shows associated with the listing and screen selected
+            for show in self.shows:
+                listing = db.listings.find_one({"shows": show})
+                if(listing != None):
+                    listingID = listing.get("_id")
+                    if(listingID == self.selectedListingID):
+                        listingShows.append(show)
 
         # Remove all show buttons if they exist
         for i in self.showsButtons:
@@ -1043,7 +1054,6 @@ class MainFrame():
             self.successMessage = ctk.CTkLabel(master=self.viewListingsFrame, text="Listing Removed", text_color=SUCCESS_COLOUR, font=("Roboto", 18))
             self.successMessage.pack()
 
-
     def switchFrames(self, frame):
 
         self.buttonsFrame.pack_forget()
@@ -1057,7 +1067,7 @@ class MainFrame():
         employeeType = self.loggedInUser.__class__.__name__
         if(employeeType == "Admin" or employeeType == "Manager"):
             if(frame == self.viewListingsFrame):
-                self.bookingButton.configure(text="Add Listing", command=lambda: [self.switchFrames(self.addListingFrame), self.__clearListingInfo()])
+                self.bookingButton.configure(text="Add Listing", command=lambda: self.switchFrames(self.addListingFrame))
                 self.viewListingsButton.configure(text="Update Listing", command=lambda: [self.switchFrames(self.addListingFrame), self.__loadListingInfo()])
                 self.viewBookingsButton.configure(text="Remove Listing", command=self.__removeListing)
 
