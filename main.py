@@ -313,6 +313,7 @@ class Listing:
         }
         addShowID = db.shows.insert_one(newShow).inserted_id
         db.listings.find_one_and_update({"_id": self.id}, {"$push": {"shows": addShowID}})
+        db.screens.find_one_and_update({"_id": screenID}, {"$push": {"shows": addShowID}})
 
         return addShowID
         
