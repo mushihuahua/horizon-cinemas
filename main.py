@@ -83,9 +83,6 @@ class Cinema:
         self.__listings = []
         self.__bookings = []
         self.__staffMembers = []
-        
-    def getListings(self):
-        pass
     
     def makeBooking(self, newBooking):
 
@@ -268,9 +265,6 @@ class City:
         self.__cinemas.append(cinema)
 
         return True
-
-    def makeBookingAtDifferentCinema(self, cinema):
-        pass
 
 class Listing: 
     def __init__(self, id, filmName, filmLength, filmDescription, cast, filmGenre, filmAge, filmRating, shows=[]):
