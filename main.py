@@ -1,7 +1,6 @@
 import json
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from bson.objectid import ObjectId
 import tkinter as tk
 import tkinter.ttk as ttk
 import customtkinter as ctk
@@ -597,7 +596,6 @@ class Booking:
         self.__cancelled = True
         return self.__cancelled
 
-
 staffTypes = {
     "Booking Staff": BookingStaff,
     "Admin": Admin,
@@ -607,7 +605,8 @@ staffTypes = {
 cityContainer = CityContainer()
 loggedInUser = Staff(0, "", 0, "", "")
 currentCity = City("Bristol", 6, 7, 8)
-cinema  = db.cinemas.find_one({"_id": ObjectId("63baf1143fa6569bc82de524")})
+from currentCinemaID import ID
+cinema  = db.cinemas.find_one({"_id": ID})
 currentCinema = Cinema("", "", "")
 if(cinema != None):
     currentCinema = Cinema(cinema.get("_id"), currentCity, cinema.get("location"), screens=cinema.get("screens"))
