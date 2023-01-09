@@ -10,3 +10,6 @@ Using the manager account other accounts can be made to test features
 The mongodb database dump is included as horizonCinemasDB in this file
 
 The current cinema ID is manually stored in currentCinemaID.py
+
+All the used required libraries are in requirements.txt, to install the libraries do: pip install -r requirements.txt
+

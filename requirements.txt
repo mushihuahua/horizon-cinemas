@@ -1,0 +1,6 @@
+certifi==2020.6.20
+customtkinter==5.0.3
+Pillow==9.4.0
+pymongo==4.3.3
+tkcalendar==1.6.1
+Werkzeug==2.2.2
